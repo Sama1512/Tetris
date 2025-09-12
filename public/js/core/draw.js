@@ -109,6 +109,57 @@ export function drawHold(mino) {
   });
 }
 
+
+// 透過ゴースト描画
+export function drawGhost(field, mino) {
+  if (!field || !mino) return;
+  // ゴースト位置を計算
+  const ghost = {
+    type: mino.type,
+    rotation: mino.rotation,
+    x: mino.x,
+    y: mino.y,
+    blocks: mino.blocks,
+    color: mino.color,
+  };
+
+  // フィールドサイズ（固定10x20想定だが保険）
+  const h = field.length;
+  const w = field[0]?.length ?? 10;
+
+  // 衝突チェックの簡易版
+  const collides = (m) => {
+    const blocks = getBlocks(m);
+    for (const [bx, by] of blocks) {
+      if (bx < 0 || bx >= w || by >= h) return true;
+      if (by >= 0 && field[by][bx]) return true;
+    }
+    return false;
+  };
+
+  // 下に落とし続け、衝突直前まで移動
+  while (true) {
+    const next = { ...ghost, y: ghost.y + 1 };
+    if (collides(next)) break;
+    ghost.y += 1;
+  }
+
+  // 半透明で描画
+  const ctx = context;
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  const blocks = getBlocks(ghost);
+  blocks.forEach(([x, y]) => {
+    if (y < 0) return; // 画面外は無視
+    const drawX = x * BLOCK_SIZE;
+    const drawY = y * BLOCK_SIZE;
+    ctx.fillStyle = ghost.color || "gray";
+    ctx.fillRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
+    ctx.strokeStyle = "#333";
+    ctx.strokeRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
+  });
+  ctx.restore();
+}
 export function drawNext(queue, count) {
   const canvas = document.getElementById("next-canvas");
   const ctx = canvas.getContext("2d");

@@ -8,9 +8,9 @@ export class MarathonGame extends SingleGameBase {
     this.dropInterval = null;
   }
 
-  start(onStateUpdate) {
+  async start(onStateUpdate) {
     this.onStateUpdate = onStateUpdate;
-    super.start(); // reset()とspawnMino()を呼び出す
+    await super.start(); // reset()とspawnMino()を呼び出す
     this.updateDropSpeed(true);
     this.startDropLoop();
   }

@@ -11,9 +11,17 @@ export class SprintGame extends SingleGameBase {
     this.dropInterval = null;
   }
 
-  start(onStateUpdate) {
+  async start(onStateUpdate) {
     this.onStateUpdate = onStateUpdate;
-    super.start();
+    await super.start();
+    // 設定に応じてTIME表示
+    const settings = this.settings || (await import('../ui/settings_runtime.js')).getSettings?.();
+    try {
+      const showTime = this.settings ? this.settings['show-time'] : true;
+      const timeEl = document.getElementById('clear-time')?.parentElement; // ラベルと値の行
+      if (timeEl) timeEl.style.display = showTime ? '' : 'none';
+    } catch (e) {}
+
     this.scoreManager.reset?.();
     this.startTime = performance.now();
     this.updateTime();

@@ -29,3 +29,5 @@ Makefile    text eol=lf
 *.ico       binary
 *.wav       binary
 *.mp3       binary
+*.m4a       binary
+*.mp4       binary
