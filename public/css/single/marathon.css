@@ -1,0 +1,35 @@
+/* ==== マラソンモード用UIスタイル ==== */
+/* スコアの視認性向上 */
+#score {
+  color: #ffd700; /* ゴールド */
+  font-weight: bold;
+  font-size: clamp(1.2rem, 2.2vw, 2.8rem);
+}
+
+/* レベル表示を強調 */
+#level {
+  color: #00bfff; /* 水色 */
+  font-weight: bold;
+  font-size: clamp(1rem, 1.8vw, 2.2rem);
+}
+
+/* ライン数もやや強調（控えめ） */
+#lines {
+  color: #ffffff;
+  font-weight: normal;
+  font-size: clamp(0.9rem, 1.5vw, 2rem);
+}
+
+/* ゲームオーバー時の視覚的演出（フェード＋点滅） */
+body.gameover #score,
+body.gameover #level,
+body.gameover #lines {
+  color: #ff5555;
+  animation: fadeOutBlink 1s step-end infinite;
+}
+
+@keyframes fadeOutBlink {
+  50% {
+    opacity: 0.3;
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "startingLevel": 1,
+  "linesPerLevel": 10,
+  "dropSpeed": [800, 700, 600, 500, 400, 300, 200, 100],
+  "garbageDelay": 200,
+  "comboTable": [0, 1, 2, 3, 4, 4, 5, 6],
+  "b2bBonus": 1.5
+}

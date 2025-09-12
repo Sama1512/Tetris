@@ -1,0 +1,65 @@
+/* ==== ボタン共通スタイル ==== */
+button {
+  padding: 10px 20px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 8px;
+  border: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  text-align: center;
+}
+
+button:hover {
+  background-color: #d3d3d3;
+}
+
+/* 保存ボタン（主にsettings用） */
+.save-button {
+  background-color: #007bff;
+  color: white;
+}
+
+.save-button:hover {
+  background-color: #0056b3;
+}
+
+/* 戻るボタン（settingsなど） */
+.return-button {
+  background-color: #1a1a1a;
+  color: white;
+  border: 2px solid white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 46px;
+  text-align: center;
+}
+
+.return-button:hover {
+  background-color: #333;
+}
+
+/* リザルト画面のボタン */
+.result-buttons button {
+  padding: 10px 20px;
+  font-size: 1rem;
+}
+
+/* モード選択画面のボタン（クレジット/オプション） */
+.mode-box.option-credit button {
+  min-width: 120px;
+}
+
+/* ===== レスポンシブ対応（スマホ向け）===== */
+@media (max-width: 500px) {
+  button,
+  .save-button,
+  .return-button,
+  .result-buttons button,
+  .mode-box.option-credit button {
+    width: 100%;
+    max-width: 100%;
+    font-size: 1rem;
+    padding: 10px;
+  }
+}

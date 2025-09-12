@@ -1,0 +1,10 @@
+{
+  "moveLeft": "ArrowLeft",
+  "moveRight": "ArrowRight",
+  "softDrop": "ArrowDown",
+  "hardDrop": "ArrowUp",
+  "rotateRight": "KeyX",
+  "rotateLeft": "KeyZ",
+  "hold": "KeyC",
+  "pause": "KeyP"
+}

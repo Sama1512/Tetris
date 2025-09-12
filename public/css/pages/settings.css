@@ -1,0 +1,190 @@
+/* ===== 全体レイアウト共通設定 ===== */
+body.settings {
+  margin: 0;
+  padding: 40px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* ===== 設定フォーム全体 ===== */
+#settings-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+/* ===== タブ内コンテンツ全体 ===== */
+.tab-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* ===== キー設定：2列表示用グリッド ===== */
+.key-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  width: 100%;
+  max-width: 700px;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+/* ===== 設定1行（共通） ===== */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  margin-bottom: 12px;
+  width: 100%;
+  max-width: 600px;
+  box-sizing: border-box;
+}
+
+/* ===== キー設定専用：1行に2組（ラベル＋インプット） ===== */
+.setting-row.setting-keys {
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.setting-row.setting-keys .pair {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 270px;
+  justify-content: flex-end;
+}
+
+/* ===== 各タブに対応するラベル設定 ===== */
+#tab-keys .pair label {
+  display: inline-block;
+  width: 8em;
+  text-align: right;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+#tab-display .setting-row > label {
+  display: inline-block;
+  width: 15em;
+  text-align: right;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+#tab-control .setting-row > label {
+  display: inline-block;
+  width: 10em;
+  text-align: right;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/* ===== 入力欄 ===== */
+.setting-row input[type="text"],
+.setting-row input[type="number"],
+.setting-row select {
+  padding: 6px 10px;
+  width: 140px;
+  max-width: 140px;
+  text-align: center;
+  font-size: 1rem;
+  box-sizing: border-box;
+  display: inline-block;
+}
+
+/* ===== トグルボタン（中央見せ） ===== */
+input[type="checkbox"].toggle {
+  appearance: none;
+  width: 50px;
+  height: 26px;
+  background: #555;
+  border-radius: 13px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+input[type="checkbox"].toggle::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+input[type="checkbox"].toggle:checked {
+  background: #007bff;
+}
+
+input[type="checkbox"].toggle:checked::before {
+  transform: translateX(22px);
+}
+
+/* ===== ボタン行 ===== */
+.button-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+/* ===== モバイル対応（500px以下） ===== */
+@media (max-width: 500px) {
+  .key-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .setting-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #tab-keys .pair label,
+  #tab-display .setting-row > label,
+  #tab-control .setting-row > label {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 4px;
+  }
+
+  .setting-row input,
+  .setting-row select,
+  input[type="checkbox"].toggle {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  input[type="checkbox"].toggle::before {
+    left: 3px;
+    width: 18px;
+    height: 18px;
+  }
+
+  input[type="checkbox"].toggle:checked::before {
+    transform: translateX(20px);
+  }
+}

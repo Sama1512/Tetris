@@ -1,0 +1,32 @@
+/* ===== メッセージボックスの共通スタイル ===== */
+#message-box {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: bold;
+  padding: 8px;
+  border-radius: 6px;
+  display: none; /* 非表示状態（JSで制御） */
+}
+
+/* ===== 成功メッセージ用スタイル ===== */
+#message-box.success {
+  color: #00ffcc;
+  background-color: #003333;
+  border: 1px solid #00cccc;
+}
+
+/* ===== エラーメッセージ用スタイル ===== */
+#message-box.error {
+  color: #ff8080;
+  background-color: #330000;
+  border: 1px solid #ff3333;
+}
+
+/* ===== レスポンシブ対応 ===== */
+@media (max-width: 500px) {
+  #message-box {
+    font-size: 0.95rem;
+    padding: 6px;
+  }
+}

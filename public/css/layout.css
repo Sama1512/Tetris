@@ -1,0 +1,117 @@
+/* 配置やレイアウトに関する共通スタイル定義 */
+/* 全体構成 */
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+body.settings {
+  display: block;
+  padding: 40px;
+  height: auto;
+  overflow-y: visible;
+}
+
+.tab-container {
+  margin: 0 auto;
+  padding: 1rem;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* スタート画面やゲーム画面のレイアウト */
+#start-screen,
+#game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+#game-container {
+  flex-direction: row;
+  gap: 20px;
+  align-items: center;
+}
+
+.mode-row {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.mode-box {
+  padding: 20px;
+  border: 2px solid white;
+  border-radius: 12px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background-color: #1a1a1a;
+}
+
+.mode-box.option-credit {
+  flex-direction: row;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.mode-box.option-credit button {
+  min-width: 120px;
+}
+
+#left-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+#info-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 240px;
+}
+
+#info-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid #555;
+  background-color: #1c1c1c;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 2rem;
+}
+
+.label, .value {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+#hold-wrapper,
+#next-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}

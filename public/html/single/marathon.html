@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marathon</title>
+
+  <!-- 共通CSS -->
+  <link rel="stylesheet" href="../../css/base.css" />
+  <link rel="stylesheet" href="../../css/layout.css" />
+
+  <!-- ページ専用CSS -->
+  <link rel="stylesheet" href="../../css/pages/game.css" />
+  <link rel="stylesheet" href="../../css/single/marathon.css" />
+
+  <!-- コンポーネントCSS -->
+  <link rel="stylesheet" href="../../css/components/button.css" />
+  <link rel="stylesheet" href="../../css/components/result.css" />
+  <link rel="stylesheet" href="../../css/components/form.css" />
+  <link rel="stylesheet" href="../../css/components/message.css" />
+
+  <link rel="icon" href="../../favicon.ico" type="image/x-icon" />
+</head>
+<body>
+  <div id="game-container">
+    <div id="left-column">
+      <div id="hold-wrapper">
+        <div id="hold">HOLD</div>
+        <canvas id="hold-canvas"></canvas>
+      </div>
+
+      <div id="info-wrapper">
+        <div id="info-panel">
+          <div class="info-item"><div class="label">SCORE</div><div id="score" class="value">0</div></div>
+          <div class="info-item"><div class="label">LEVEL</div><div id="level" class="value">1</div></div>
+          <div class="info-item"><div class="label">LINES</div><div id="lines" class="value">0</div></div>
+        </div>
+
+        <div id="controls-guide">
+          <p><span id="move-left-key">←</span>：左に移動</p>
+          <p><span id="move-right-key">→</span>：右に移動</p>
+          <p><span id="soft-drop-key">↓</span>：ソフトドロップ</p>
+          <p><span id="hard-drop-key">↑</span>：ハードドロップ</p>
+          <p><span id="rotate-left-key">Z</span>：左回転</p>
+          <p><span id="rotate-right-key">X</span>：右回転</p>
+          <p><span id="hold-key">C</span>：ホールド</p>
+          <p><span id="pause-key">P</span>：一時停止</p>
+        </div>
+      </div>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+
+    <div id="right-column">
+      <div id="next-wrapper">
+        <div id="next">NEXT</div>
+        <canvas id="next-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果表示 -->
+  <div id="result-box" style="display: none;">
+    <div class="result-message"></div>
+    <div class="result-lines"></div>
+    <div class="result-score"></div>
+    <div class="result-buttons">
+      <button onclick="location.reload()">リトライ</button>
+      <button onclick="location.href='../../html/index.html'">タイトルに戻る</button>
+    </div>
+  </div>
+
+  <script type="module" src="../../js/single/marathon_game.js"></script>
+</body>
+</html>

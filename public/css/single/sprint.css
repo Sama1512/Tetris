@@ -1,0 +1,26 @@
+/* ==== スプリントモード用UIスタイル ==== */
+/* タイムの強調表示（クリアにおける重要要素） */
+#clear-time {
+  color: #00ffcc;
+  font-weight: bold;
+  font-size: clamp(1rem, 2vw, 2.4rem);
+}
+
+/* ゲームクリア時：タイムが緑で点滅 */
+.clear-finish #clear-time {
+  color: #00ff00;
+  animation: blink 0.6s step-end infinite;
+}
+
+/* ゲームオーバー時：タイムが赤く固定 */
+.clear-fail #clear-time {
+  color: #ff3333;
+  font-weight: bold;
+}
+
+/* 共通：blinkアニメーション（タイム用） */
+@keyframes blink {
+  50% {
+    opacity: 0.3;
+  }
+}

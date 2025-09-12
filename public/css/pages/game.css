@@ -1,0 +1,134 @@
+/* 共通ゲームUIの配置スタイル */
+#game-container {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+}
+
+#left-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+#hold-wrapper, #next-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+#hold, #next {
+  background-color: #333;
+  padding: 10px;
+  min-width: 100px;
+  text-align: center;
+  font-weight: bold;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+}
+
+canvas#hold-canvas,
+canvas#next-canvas {
+  display: block;
+  background-color: #111;
+  border: 1px solid #fff;
+}
+
+canvas#hold-canvas {
+  aspect-ratio: 1 / 1; /* 縦横比を常に1：1に保つ */
+  max-width: calc(4 * 24px);
+  max-height: calc(4 * 24px);
+}
+
+canvas#next-canvas {
+  max-width: 160px;
+  max-height: 600px;
+}
+
+canvas#game-canvas {
+  background-color: #000;
+  border: 2px solid #fff;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100vw;
+  max-height: 90vh;
+  aspect-ratio: 1 / 2; /* 縦横比を常に2：1に保つ */
+}
+
+#right-column {
+  height: 100%;
+}
+
+#info-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid #555;
+  background-color: #1c1c1c;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 2rem;
+}
+
+.label, .value {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.label {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+#info-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 240px;
+}
+
+#controls-guide {
+  font-size: clamp(0.8rem, 1.2vw, 1rem);
+  line-height: 0.5;
+  background: #222;
+  padding: 6px;
+  border-radius: 5px;
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+}
+
+#controls-guide p {
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  #game-container {
+    flex-direction: column;
+  }
+  #left-column, #right-column {
+    width: 100%;
+    align-items: center;
+  }
+  #controls-guide {
+    max-height: 200px;
+  }
+  canvas#game-canvas {
+    max-height: 70vh;
+  }
+}

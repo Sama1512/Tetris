@@ -1,0 +1,80 @@
+/* ===== タブ全体の外枠コンテナ ===== */
+.tab-container {
+  margin: 0 auto;
+  padding: 1rem;
+  max-width: 100%;
+  max-height: 100vh;
+  padding-bottom: 20px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* ===== タブのヘッダー（タブボタンが並ぶ部分） ===== */
+.tab-header {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+/* ===== タブボタン共通スタイル ===== */
+.tab-button {
+  padding: 8px 16px;
+  background-color: #222;
+  border: 1px solid #555;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.tab-button:hover {
+  background-color: #333;
+}
+
+/* ===== アクティブなタブボタン ===== */
+.tab-button.active {
+  background-color: #007bff;
+  border-color: #0056b3;
+}
+
+/* ===== 各タブのコンテンツ領域 ===== */
+.tab-content {
+  display: none;
+  padding: 0.5rem 0;
+  overflow-y: auto;
+  max-height: calc(100vh - 180px); /* 上部のヘッダーやボタン分を引く */
+}
+
+/* ===== 表示中のタブのみ表示する ===== */
+.tab-content.active {
+  display: block;
+}
+
+/* ===== タブごとの見出し（h2） ===== */
+.tab-content h2 {
+  text-align: center;
+  margin: 0 auto 1rem;
+  max-width: 200px;
+  border: 2px double #fff;
+  padding: 0.5rem 1rem;
+  background: #333;
+}
+
+.tab-content input[type="number"] {
+  width: 120px;
+  max-width: 100%;
+  text-align: center;
+}
+.tab-content .toggle {
+  transform: scale(1.1);
+}
+
+/* ===== モバイル対応：タブボタンを縦に並べる ===== */
+@media (max-width: 500px) {
+  .tab-header {
+    flex-direction: column;
+    align-items: center;
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "show-ghost": true,
+  "enable-hold": true,
+  "show-time": true,
+  "enable-harddrop": true,
+  "reverse-rotation": false,
+  "next-count": 5,
+  "das": 100,
+  "arr": 0,
+  "lock-delay": 500
+}

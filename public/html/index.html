@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ガイドライン準拠の本格テトリス。マラソン・スプリント・CPU戦搭載。">
+  <meta name="theme-color" content="#000000">
+  <title>TETRIS</title>
+
+  <!-- 共通CSS -->
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+
+  <!-- ページ専用CSS -->
+  <link rel="stylesheet" href="../css/pages/index.css" />
+
+  <!-- コンポーネントCSS -->
+  <link rel="stylesheet" href="../css/components/button.css" />
+
+  <link rel="icon" href="../favicon.ico" type="image/x-icon" />
+</head>
+<body>
+  <div id="start-screen">
+    <h1 class="title">TETRIS</h1>
+
+    <div class="mode-row">
+      <div class="mode-box singleplay">
+        <h2>一人プレイ</h2>
+        <button id="marathon-btn">マラソン</button>
+        <button id="sprint-btn">スプリント</button>
+      </div>
+
+      <div class="mode-box cpuplay">
+        <h2>CPU戦</h2>
+        <button id="cpu-btn">vs CPU</button>
+      </div>
+    </div>
+
+    <div class="mode-row">
+      <div class="mode-box option-credit">
+        <button id="settings-btn">オプション</button>
+        <button id="credits-btn">クレジット</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="../js/main.js"></script>
+</body>
+</html>

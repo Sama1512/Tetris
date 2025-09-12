@@ -1,0 +1,87 @@
+/* index.html用のレイアウト・画面構成 */
+#start-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mode-row {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.mode-row h2 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mode-box {
+  padding: 20px;
+  border: 2px solid white;
+  border-radius: 12px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background-color: #1a1a1a;
+}
+
+.mode-box.singleplay {
+  border-color: #00bfff;
+}
+
+.mode-box.cpuplay {
+  border-color: #ff4444;
+}
+
+.mode-box.option-credit {
+  border-color: #fff;
+  flex-direction: row;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.mode-box.option-credit button {
+  min-width: 120px;
+}
+
+h1.title {
+  margin-top: 0.5rem;
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ====== Responsive Design for index.html ====== */
+@media (max-width: 600px) {
+  .mode-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .mode-box {
+    width: 90%;
+    min-width: unset;
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .mode-box.option-credit {
+    flex-direction: column;
+  }
+
+  .mode-box.option-credit button {
+    width: 100%;
+    min-width: unset;
+  }
+
+  h1.title {
+    font-size: 1.8rem;
+    text-align: center;
+  }
+}

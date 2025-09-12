@@ -1,0 +1,52 @@
+/* 全体の配置 */
+.credits-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  gap: 2rem;
+  box-sizing: border-box;
+}
+
+/* タイトル */
+.credits-content h1 {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* クレジット項目リスト */
+.credits-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: clamp(1rem, 2.5vw, 1.4rem);
+  line-height: 1.6;
+  text-align: left;
+}
+
+/* 戻るボタンの配置 */
+.return-button-container {
+  text-align: center;
+}
+
+/* ボタン自体のスタイルは components/button.css に委譲 */
+
+/* === レスポンシブ（モバイル対応） === */
+@media (max-width: 480px) {
+  .credits-container {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+
+  .credits-content h1 {
+    font-size: 1.6rem;
+  }
+
+  .credits-content ul {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+}
