@@ -1,96 +1,49 @@
+// rAF一本化の落下ループ（setIntervalは使わない）
 import { SingleGameBase } from "./single_game.js";
 import { updateUI } from "../ui/ui.js";
 
 export class MarathonGame extends SingleGameBase {
-  constructor() {
-    super("game-canvas", 5, null);
-    this.currentLevel = 1;
-    this.dropInterval = null;
+  constructor(canvasId = "game-canvas", nextCount = 5, onStateUpdate = null) {
+    super(canvasId, nextCount, onStateUpdate);
+    this.level = 1;
+    this._linesForLevel = 0;
+    this._rafId = null;
+    this._lastTs = 0;
+    this._acc = 0;
+    this._paused = false;
+    this._dropSecTable = [1.0,0.8,0.7,0.6,0.5,0.45,0.40,0.35,0.30,0.26,0.23,0.20,0.18,0.16,0.14,0.12,0.10];
   }
-
+  getDropIntervalSec() {
+    const v = this._dropSecTable[Math.min(Math.max(this.level,1)-1, this._dropSecTable.length-1)];
+    return (Number.isFinite(v) && v > 0.01) ? v : 0.5;
+  }
   async start(onStateUpdate) {
-    this.onStateUpdate = onStateUpdate;
-    await super.start(); // reset()とspawnMino()を呼び出す
-    this.updateDropSpeed(true);
-    this.startDropLoop();
+    this.onStateUpdate = onStateUpdate ?? ((hud)=>updateUI(hud));
+    await super.start();
+    this._lastTs = performance.now();
+    const loop = (ts) => {
+      if (this._paused || this.isGameOver) { this._lastTs = ts; this._rafId = requestAnimationFrame(loop); return; }
+      const dt = (ts - this._lastTs)/1000; this._lastTs = ts; this._acc += dt;
+      const step = this.getDropIntervalSec();
+      const maxCarry = step * 5; if (this._acc > maxCarry) this._acc = maxCarry;
+      while (this._acc >= step) { this.moveMino(0,1); this._acc -= step; }
+      this._rafId = requestAnimationFrame(loop);
+    };
+    this._rafId = requestAnimationFrame(loop);
+    document.addEventListener("visibilitychange", () => { this._paused = document.hidden; });
   }
-
-  getDropInterval() {
-    if (typeof this.currentLevel !== "number" || isNaN(this.currentLevel)) {
-      console.warn("⚠️ currentLevel is invalid, resetting to 1");
-      this.currentLevel = 1;
-    }
-    return Math.max(100, 500 - (this.currentLevel - 1) * 50);
+  onClear(lines) {
+    if (!lines) return;
+    this._linesForLevel += lines;
+    while (this._linesForLevel >= 10) { this._linesForLevel -= 10; this.level++; }
   }
-
-  startDropLoop() {
-    clearInterval(this.dropInterval);
-    const interval = this.getDropInterval();
-    this.dropInterval = setInterval(() => this.moveMino(0, 1), interval);
-    console.log(`🕒 Drop interval started: ${interval}ms (level ${this.currentLevel})`);
-  }
-
-  updateDropSpeed(force = false) {
-    const scoreState = this.scoreManager.getState();
-    if (!scoreState || typeof scoreState.level !== "number") {
-      console.warn("Invalid scoreState.level:", scoreState?.level);
-      return;
-    }
-    const newLevel = Number(scoreState.level);
-    if (isNaN(newLevel)) {
-      console.warn("newLevel is NaN! Raw value:", scoreState.level);
-      return;
-    }
-    this.currentLevel = newLevel;
-    this.startDropLoop();
-  }
-
-  onClear(cleared) {
-    this.scoreManager.addLines(cleared);
-    this.updateDropSpeed();
-  }
-
-  onGameOver() {
-    clearInterval(this.dropInterval);
-    this.endGame("GAME OVER", false);
-  }
-
-  onClearFinish() {
-    clearInterval(this.dropInterval);
-    this.endGame("CLEAR!", true);
-  }
-
-  endGame(message, isClear) {
-    this.isGameOver = true; // 入力・描画停止フラグを立てる
-
-    this.render(); // 最終描画
-    // showGameOver(); // 背景表示(ui/ui.jsにあるが、現時点で二重に表示されてしまうため今後削除対象かも)
-
-    const state = this.scoreManager?.getState() ?? {};
-    const score = state.score ?? 0;
-    const lines = state.lines ?? 0;
-
-    const resultBox = document.getElementById("result-box");
-    if (resultBox) {
-      const color = isClear ? "#00ff00" : "#ff3333";
-      resultBox.innerHTML = `
-        <div class="result-message" style="color:${color};">${message}</div>
-        <div class="result-lines">LINES: ${lines}</div>
-        <div class="result-score">SCORE: ${score}</div>
-        <div class="result-buttons">
-          <button onclick="location.reload()">リトライ</button>
-          <button onclick="location.href='../../html/index.html'">タイトルに戻る</button>
-        </div>
-      `;
-      resultBox.style.display = "block";
-    } else {
-      alert(`${message}\nLINES: ${lines}\nSCORE: ${score}`);
-    }
-  }
-
-  render() {
-    super.render();
-    const scoreState = this.scoreManager.getState();
-    updateUI(scoreState);
-  }
+  dispose(){ if (this._rafId) cancelAnimationFrame(this._rafId); this._rafId = null; }
 }
+
+// マラソン起動（このファイル1本だけを <script type="module"> で読み込むこと）
+window.addEventListener("DOMContentLoaded", () => {
+  if (window.__TETRIS_GAME_RUNNING__) return;
+  window.__TETRIS_GAME_RUNNING__ = "marathon";
+  const game = new MarathonGame("game-canvas", 5, (hud)=>updateUI(hud));
+  game.start();
+});

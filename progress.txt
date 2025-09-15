@@ -19,4 +19,6 @@
 2025/6/26   フェーズ1終了(設定画面からの画面遷移＋設定UIのレイアウトについて、要改善)(Tetris - SavedPhaseOne)
 2025/6/29   フェーズ1終了(設定後の機能反映のみ未)(Tetris - SavedPhaseOneNew)
 2025/9/12   フェーズ2に入っていたが、崩壊したため消去Tetris - SavedPhaseOneNewに戻る
-　　　       Tetris - SavedPhaseOneを削除
+　　　       Tetris - SavedPhaseOneを削除し、Tetris - SavedPhaseOneNewをTetris - SavedPhaseOneにリネーム
+2025/9/12   設定後の機能反映実装、旧Tetris - SavedPhaseOneを削除し、これにTetris - SavedPhaseOneを付ける
+　　　　     本当の意味でのフェーズ1完成
