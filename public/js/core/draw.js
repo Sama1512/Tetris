@@ -1,130 +1,210 @@
 import { getBlocks } from "./mino.js";
-import { getFieldSize, getSize } from "./field.js";
+import { getFieldSize } from "./field.js";
 
-let canvas, ctx;
+let canvas, context;
 let BLOCK_SIZE = 32;
 
-// 状態（ゲーム側が setDrawState で更新）
+// 状態保持（外部で代入してください）
 export let currentField = null;
-export let currentMino  = null;
-export let currentHold  = null;
-export let nextQueue    = [];
-export let nextCount    = 5;
-
-export function initDraw(canvasEl) {
-  canvas = canvasEl;
-  ctx = canvas.getContext("2d");
-  resizeCanvasAll();
-  // リサイズは軽くディレイ
-  let timer;
-  window.addEventListener("resize", () => {
-    clearTimeout(timer);
-    timer = setTimeout(resizeCanvasAll, 150);
-  });
-}
+export let currentMino = null;
+export let currentHold = null;
+export let nextQueue = [];
+export let nextCount = 5;
 
 export function setDrawState({ field, mino, hold, queue, count }) {
-  currentField = field ?? currentField;
-  currentMino  = mino  ?? currentMino;
-  currentHold  = hold  ?? currentHold;
-  nextQueue    = Array.isArray(queue) ? queue : nextQueue;
-  if (typeof count === "number") nextCount = count;
+  currentField = field;
+  currentMino = mino;
+  currentHold = hold;
+  nextQueue = queue || [];
+  nextCount = count || 5;
 }
 
-// ====== 基本描画 ======
+export function initDraw(canvasElement) {
+  canvas = canvasElement;
+  context = canvas.getContext("2d");
+  resizeCanvasAll();
+}
+
+export function resizeCanvasAll() {
+  const { width, height } = getFieldSize();
+  const maxWidth = window.innerWidth * 0.4;
+  const maxHeight = window.innerHeight * 0.8;
+  const blockSizeX = Math.floor(maxWidth / width);
+  const blockSizeY = Math.floor(maxHeight / height);
+  BLOCK_SIZE = Math.max(16, Math.min(blockSizeX, blockSizeY));
+
+  canvas.width = width * BLOCK_SIZE;
+  canvas.height = height * BLOCK_SIZE;
+
+  drawFieldBackground();
+
+  // 🧠 リサイズ後の再描画
+  if (currentField) drawField(currentField);
+  if (currentMino) drawMino(currentMino);
+  if (currentHold) drawHold(currentHold);
+  if (nextQueue.length > 0) drawNext(nextQueue, nextCount);
+}
+
+function drawFieldBackground() {
+  context.fillStyle = "#000";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+}
+
 export function drawField(field) {
-  if (!canvas || !ctx || !field) return;
-  const { width, height } = getWH();
-  clearCanvas();
-
-  // グリッド背景
-  ctx.fillStyle = "#111";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  // 既存ブロック
-  for (let y = 0; y < height; y++) {
-    const row = field[y];
-    if (!row) continue;
-    for (let x = 0; x < width; x++) {
-      if (row[x]) {
-        fillCell(x, y, "#888");
-      } else {
-        // 薄いグリッド
-        ctx.strokeStyle = "rgba(255,255,255,0.05)";
-        ctx.strokeRect(x*BLOCK_SIZE, y*BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+  drawFieldBackground();
+  for (let y = 0; y < field.length; y++) {
+    for (let x = 0; x < field[y].length; x++) {
+      if (field[y][x]) {
+        drawBlock(x, y, field[y][x]);
       }
     }
   }
 }
 
 export function drawMino(mino) {
-  if (!mino) return;
-  const cells = getBlocks(mino, { absolute: true });
-  ctx.fillStyle = "#0cf";
-  for (const [x,y] of cells) fillCell(x,y,"#0cf");
+  getBlocks(mino).forEach(([x, y]) => {
+    drawBlock(x, y, mino.color);
+  });
 }
 
+function drawBlock(x, y, color) {
+  context.fillStyle = color;
+  context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+  context.strokeStyle = "#333";
+  context.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+}
+
+export function drawHold(mino) {
+  const holdArea = document.getElementById("hold-canvas");
+  if (!holdArea || !mino) return;
+
+  const ctx = holdArea.getContext("2d");
+  const canvasSize = 4 * BLOCK_SIZE;
+
+  holdArea.width = canvasSize;
+  holdArea.height = canvasSize;
+  ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+  const blocks = getBlocks(mino);
+  const xs = blocks.map(([x, _]) => x);
+  const ys = blocks.map(([_, y]) => y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+
+  const minoWidth = maxX - minX + 1;
+  const minoHeight = maxY - minY + 1;
+
+  const offsetX = Math.floor((4 - minoWidth) / 2) - minX;
+  const offsetY = Math.floor((4 - minoHeight) / 2) - minY;
+
+  ctx.fillStyle = mino.color;
+  blocks.forEach(([x, y]) => {
+    const drawX = (x + offsetX) * BLOCK_SIZE;
+    const drawY = (y + offsetY) * BLOCK_SIZE;
+    ctx.fillRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
+    ctx.strokeStyle = "#333";
+    ctx.strokeRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
+  });
+}
+
+
+// 透過ゴースト描画
 export function drawGhost(field, mino) {
   if (!field || !mino) return;
-  // 下に影を落とすだけ（簡易）
-  let gy = mino.y;
-  while (!collides(field, { ...mino, y: gy + 1 })) gy++;
-  const ghost = { ...mino, y: gy };
-  const cells = getBlocks(ghost, { absolute: true });
-  ctx.fillStyle = "rgba(255,255,255,.15)";
-  for (const [x,y] of cells) fillCell(x,y,"rgba(255,255,255,.15)");
-}
+  // ゴースト位置を計算
+  const ghost = {
+    type: mino.type,
+    rotation: mino.rotation,
+    x: mino.x,
+    y: mino.y,
+    blocks: mino.blocks,
+    color: mino.color,
+  };
 
-export function drawHold(/* hold */) { /* 今は枠のみ扱い。必要なら拡張 */ }
-export function drawNext(/* queue, count */) { /* 今は枠のみ扱い。必要なら拡張 */ }
+  // フィールドサイズ（固定10x20想定だが保険）
+  const h = field.length;
+  const w = field[0]?.length ?? 10;
 
-// ====== ユーティリティ ======
-function collides(field, mino) {
-  const cells = getBlocks(mino, { absolute: true });
-  const { width, height } = getWH();
-  for (const [x,y] of cells) {
-    if (x < 0 || x >= width || y >= height) return true;
-    if (y >= 0 && field[y]?.[x]) return true;
+  // 衝突チェックの簡易版
+  const collides = (m) => {
+    const blocks = getBlocks(m);
+    for (const [bx, by] of blocks) {
+      if (bx < 0 || bx >= w || by >= h) return true;
+      if (by >= 0 && field[by][bx]) return true;
+    }
+    return false;
+  };
+
+  // 下に落とし続け、衝突直前まで移動
+  while (true) {
+    const next = { ...ghost, y: ghost.y + 1 };
+    if (collides(next)) break;
+    ghost.y += 1;
   }
-  return false;
-}
 
-function getWH() {
-  // 互換：getFieldSize() が無い場合は getSize()
-  let w,h;
-  try {
-    const g = getFieldSize?.() ?? {};
-    w = g.width ?? g.WIDTH; h = g.height ?? g.HEIGHT;
-  } catch {}
-  if (!w || !h) {
-    const g = getSize?.() ?? { WIDTH:10, HEIGHT:20 };
-    w = g.WIDTH; h = g.HEIGHT;
+  // 半透明で描画
+  const ctx = context;
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  const blocks = getBlocks(ghost);
+  blocks.forEach(([x, y]) => {
+    if (y < 0) return; // 画面外は無視
+    const drawX = x * BLOCK_SIZE;
+    const drawY = y * BLOCK_SIZE;
+    ctx.fillStyle = ghost.color || "gray";
+    ctx.fillRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
+    ctx.strokeStyle = "#333";
+    ctx.strokeRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
+  });
+  ctx.restore();
+}
+export function drawNext(queue, count) {
+  const canvas = document.getElementById("next-canvas");
+  const ctx = canvas.getContext("2d");
+  const spacing = BLOCK_SIZE / 2;
+  const previewHeight = BLOCK_SIZE * 4;
+
+  canvas.width = BLOCK_SIZE * 5;
+  canvas.height = count * (previewHeight + spacing);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < count; i++) {
+    const mino = queue[i];
+    if (!mino) continue;
+
+    const blocks = mino.blocks;
+    const xs = blocks.map(([x, _]) => x);
+    const ys = blocks.map(([_, y]) => y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+
+    const minoWidth = maxX - minX + 1;
+    const minoHeight = maxY - minY + 1;
+
+    const offsetX = Math.floor((5 - minoWidth) / 2) - minX;
+    const offsetY = Math.floor((4 - minoHeight) / 2) - minY;
+    const startY = i * (previewHeight + spacing);
+
+    ctx.fillStyle = mino.color;
+    blocks.forEach(([dx, dy]) => {
+      const x = (dx + offsetX) * BLOCK_SIZE;
+      const y = startY + (dy + offsetY) * BLOCK_SIZE;
+      ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+      ctx.strokeStyle = "#000";
+      ctx.strokeRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+    });
   }
-  return { width:w, height:h };
 }
 
-function clearCanvas() { ctx.clearRect(0,0,canvas.width,canvas.height); }
-
-function fillCell(x, y, color) {
-  ctx.fillStyle = color;
-  ctx.fillRect(x*BLOCK_SIZE, y*BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-  ctx.strokeStyle = "#000";
-  ctx.strokeRect(x*BLOCK_SIZE, y*BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-}
-
-export function resizeCanvasAll() {
-  if (!canvas) return;
-  const { width, height } = getWH();
-  const maxW = Math.floor(window.innerWidth  * 0.40);
-  const maxH = Math.floor(window.innerHeight * 0.80);
-  const bsX = Math.floor(maxW  / width);
-  const bsY = Math.floor(maxH / height);
-  BLOCK_SIZE = Math.max(16, Math.min(bsX, bsY));
-
-  canvas.width  = width  * BLOCK_SIZE;
-  canvas.height = height * BLOCK_SIZE;
-
-  // リサイズ後の軽い再描画
-  if (currentField) drawField(currentField);
-  if (currentMino)  drawMino(currentMino);
-}
+// 📏 リサイズを最適化（debounce）
+let resizeTimeout;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    if (canvas) resizeCanvasAll();
+  }, 200);
+});

@@ -1,36 +1,86 @@
-import { getCurrentKeyBindings } from "../core/input.js";
+export function updateUI(state, elapsedTime = null) {
+  const scoreState = state.scoreState || state; // 単独 or 統合状態どちらでも対応
 
-export function updateUI(state, elapsedMs = null) {
-  const s = state?.score ?? state?.scoreState ?? state ?? {};
-  setText("score", s.score ?? 0);
-  setText("level", s.level ?? 1);
-  setText("lines", s.lines ?? 0);
+  document.getElementById("score").textContent = scoreState.score || 0;
+  document.getElementById("level").textContent = scoreState.level || 1;
+  document.getElementById("lines").textContent = scoreState.lines || 0;
 
-  if (elapsedMs != null) {
-    const mm = Math.floor(elapsedMs/60000);
-    const ss = Math.floor((elapsedMs%60000)/1000);
-    const cs = Math.floor((elapsedMs%1000)/10);
-    setText("time", `${mm.toString().padStart(2,"0")}:${ss.toString().padStart(2,"0")}.${cs.toString().padStart(2,"0")}`);
+  if (elapsedTime !== null) {
+    const seconds = Math.floor(elapsedTime / 1000);
+    const centiseconds = Math.floor((elapsedTime % 1000) / 10);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    const formatted = `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`;
+
+    const timeEl = document.getElementById("clear-time");
+    if (timeEl) {
+      timeEl.textContent = `${formatted}`;
+    }
   }
 
   updateControlGuide();
 }
 
 export function updateControlGuide() {
-  const b = getCurrentKeyBindings?.() ?? null;
-  if (!b) return;
-  const map = {
-    moveLeft:"left-key", moveRight:"right-key", softDrop:"down-key", hardDrop:"up-key",
-    rotateLeft:"z-key", rotateRight:"x-key", hold:"c-key", pause:"p-key"
-  };
-  for (const [act, id] of Object.entries(map)) {
-    const el = document.getElementById(id);
-    if (el && b[act]) el.textContent = prettyKey(b[act]);
+  const bindings = getCurrentKeyBindings();
+  if (!bindings) return;
+
+  for (const action in bindings) {
+    const id = `${camelToKebab(action)}-key`;
+    const element = document.getElementById(id);
+    if (element) {
+      element.textContent = keyToSymbol(bindings[action]);
+    }
   }
 }
 
-function prettyKey(code) {
-  if (code.startsWith("Arrow")) return {ArrowLeft:"←",ArrowRight:"→",ArrowUp:"↑",ArrowDown:"↓"}[code] ?? code;
-  return code.replace(/^Key/,"").toUpperCase();
+// keys.jsonのキー名をHTMLのidに直接変換する処理(例：moveLeft→move-left)
+function camelToKebab(str) {
+  return str.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
 }
-function setText(id, text){ const el=document.getElementById(id); if(el) el.textContent=String(text); }
+
+function getCurrentKeyBindings() {
+  try {
+    const raw = localStorage.getItem("keyBindings");
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    console.error("キー設定の読み込み失敗:", e);
+    return null;
+  }
+}
+
+function keyToSymbol(code) {
+  const map = {
+    ArrowLeft: "←",
+    ArrowRight: "→",
+    ArrowDown: "↓",
+    ArrowUp: "↑",
+    Space: "␣",
+    Enter: "⏎",
+    Escape: "Esc",
+  };
+
+  if (map[code]) return map[code];
+  if (code.startsWith("Key")) return code.slice(3);   // KeyZ → Z
+  if (code.startsWith("Digit")) return code.slice(5); // Digit1 → 1
+  return code; // fallback
+}
+
+//ゲームオーバー時、Canvas上に「GAME OVER」と表示する(marathon.jsで使っていたが、使わないかも)
+/*
+export function showGameOver() {
+  const canvas = document.getElementById("game-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "white";
+  ctx.font = "bold 32px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+}
+*/
