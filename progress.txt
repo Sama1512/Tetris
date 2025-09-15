@@ -3,7 +3,7 @@
 ・フェーズ1：シングルプレイ完成（済）
 　基本操作、描画、スコア、ゲームオーバー、設定UI
 ・フェーズ2：演出追加
-　T-Spin、REN、B2B演出、テーマ切替、音
+　T-Spin、壁蹴り(WallKick)、Tetris、全消し(AllClear)、REN、Combo、B2B演出、テーマ切替、音
 ・フェーズ3：AIロジック統合
 　Go⇔C++通信、1P CPU操作、評価ベース思考実装
 ・フェーズ4：ぷよテト型対戦
@@ -22,3 +22,5 @@
 　　　       Tetris - SavedPhaseOneを削除し、Tetris - SavedPhaseOneNewをTetris - SavedPhaseOneにリネーム
 2025/9/12   設定後の機能反映実装、旧Tetris - SavedPhaseOneを削除し、これにTetris - SavedPhaseOneを付ける
 　　　　     本当の意味でのフェーズ1完成
+2025/9/16   戻そうとしたらTetris - SavedPhaseOneが6/29状態になってたので更新(b206672)
+    　   　  TSpin実装済み
