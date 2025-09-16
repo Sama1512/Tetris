@@ -1,20 +1,13 @@
 import { initDraw, drawField, drawMino, drawNext, drawHold, setDrawState, drawGhost } from "../core/draw.js";
-import { initField, checkCollision, placeMino, clearLines } from "../core/field.js";
+import { initField, checkCollision, placeMino, clearLines, isPerfectClear } from "../core/field.js";
 import { getNextBag, rotateMino, cloneMino } from "../core/mino.js";
 import { initInput } from "../core/input.js";
-import { getSettings } from "../ui/settings_runtime.js";
 import { ScoreManager } from "../core/score.js";
+import { classifyTSpinStrict } from "../core/tspin.js";
+import { Effects } from "../ui/effectManager.js"; // ★追加
 
 export class SingleGameBase {
   constructor(canvasId, nextCount = 5, onStateUpdate = null) {
-    // 設定フラグ（init時に上書き）
-    this.settings = null;
-    this.enableHold = true;
-    this.enableHardDrop = true;
-    this.reverseRotation = false;
-    this.showGhost = true;
-
-    // ゲーム状態
     this.canvas = document.getElementById(canvasId);
     this.currentMino = null;
     this.holdMino = null;
@@ -23,104 +16,159 @@ export class SingleGameBase {
     this.field = initField();
     this.nextCount = nextCount;
     this.onStateUpdate = onStateUpdate;
-    this.scoreManager = new ScoreManager();
-    this.isGameOver = false; // ゲームオーバーフラグ
 
-    // 初期化
-    this._initPromise = this.init();
+    this.scoreManager = new ScoreManager();
+    this.isGameOver = false;
+
+    this.enableHold = true;
+    this.enableHardDrop = true;
+    this.reverseRotation = false;
+    this.showGhost = true;
+
+    this.lastSpin = { rotated: false };
+    this.init();
   }
 
-  async init() {
+  _loadSettings() {
+    const toBool = (v, def) => {
+      if (typeof v === "boolean") return v;
+      if (typeof v === "number") return v !== 0;
+      if (typeof v === "string") {
+        const s = v.toLowerCase();
+        if (["1","true","on","yes"].includes(s)) return true;
+        if (["0","false","off","no"].includes(s)) return false;
+      }
+      return def;
+    };
+    const readBool = (k) => { const v = localStorage.getItem(k); return v==null?undefined:toBool(v,undefined); };
+    const readInt  = (k) => { const v = localStorage.getItem(k); if (v==null) return undefined; const n=Number(v); return Number.isFinite(n)?(n|0):undefined; };
+
+    const pickSettings = () => {
+      const keys = ["settings","tetrisSettings","gameSettings","TetrisSettings","TETRIS_SETTINGS"];
+      for (const k of keys) {
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        try { return JSON.parse(raw); } catch {}
+      }
+      return {};
+    };
+    const base = pickSettings();
+    const flat = {
+      "show-ghost":       readBool("show-ghost"),
+      "enable-hold":      readBool("enable-hold"),
+      "enable-harddrop":  readBool("enable-harddrop"),
+      "reverse-rotation": readBool("reverse-rotation"),
+      "show-time":        readBool("show-time"),
+      "next-count":       readInt("next-count"),
+      "das":              readInt("das"),
+      "arr":              readInt("arr"),
+      "lock-delay":       readInt("lock-delay"),
+    };
+    Object.keys(flat).forEach(k => flat[k] === undefined && delete flat[k]);
+    const s = { ...base, ...flat };
+
+    const gv = (h,c,d)=> (s[h] ?? s[c] ?? d);
+    const toB = (h,c,d)=> toBool(gv(h,c,d), d);
+
+    this.showGhost       = toB("show-ghost","showGhost", this.showGhost);
+    this.enableHold      = toB("enable-hold","enableHold", this.enableHold);
+    this.enableHardDrop  = toB("enable-harddrop","enableHardDrop", this.enableHardDrop);
+    this.reverseRotation = toB("reverse-rotation","reverseRotation", this.reverseRotation);
+
+    const nc = gv("next-count","nextCount", this.nextCount);
+    if (Number.isFinite(nc) && nc > 0) this.nextCount = nc|0;
+
+    try {
+      const normalized = {
+        "show-ghost": this.showGhost,
+        "enable-hold": this.enableHold,
+        "enable-harddrop": this.enableHardDrop,
+        "reverse-rotation": this.reverseRotation,
+        "next-count": this.nextCount,
+        ...(Number.isFinite(s.das) ? { das: s.das|0 } : {}),
+        ...(Number.isFinite(s.arr) ? { arr: s.arr|0 } : {}),
+        ...(Number.isFinite(s["lock-delay"]) ? { "lock-delay": s["lock-delay"]|0 } : {}),
+        ...(typeof s["show-time"] === "boolean" ? { "show-time": s["show-time"] } : {}),
+      };
+      localStorage.setItem("settings", JSON.stringify(normalized));
+    } catch {}
+
+    const holdWrapper =
+      document.getElementById("hold-wrapper") ||
+      document.getElementById("hold-area") ||
+      document.querySelector(".hold-wrapper");
+    if (holdWrapper) holdWrapper.style.display = this.enableHold ? "" : "none";
+
+    console.debug("[settings applied]", {
+      showGhost:this.showGhost, enableHold:this.enableHold,
+      enableHardDrop:this.enableHardDrop, reverseRotation:this.reverseRotation,
+      nextCount:this.nextCount,
+    });
+  }
+
+  init() {
     initDraw(this.canvas);
-
-    // 設定ロード（localStorage優先 → config/settings.json）
-    this.settings = await getSettings();
-    this.enableHold = this.settings["enable-hold"] ?? true;
-    this.enableHardDrop = this.settings["enable-harddrop"] ?? true;
-    this.reverseRotation = this.settings["reverse-rotation"] ?? false;
-    this.showGhost = this.settings["show-ghost"] ?? true;
-    const nextCountSetting = this.settings["next-count"];
-    if (typeof nextCountSetting === "number" && nextCountSetting > 0) {
-      this.nextCount = nextCountSetting;
-    }
-
-    // HOLDパネルの表示/非表示
-    const holdWrapper = document.getElementById("hold-wrapper");
-    if (holdWrapper) {
-      holdWrapper.style.display = this.enableHold ? "" : "none";
-    }
-
-    // 入力初期化
+    window.__game = this;              // デバッグ用に公開
+    this._loadSettings();
     initInput(this.handleKey.bind(this));
+    // ★演出オーバーレイをマウント
+    this.effects = new Effects(this.canvas);
   }
 
   reset() {
     this.field = initField();
     this.nextQueue = [...getNextBag()];
-    while (this.nextQueue.length < this.nextCount) {
-      this.nextQueue.push(...getNextBag());
-    }
-    this.holdMino = null;
-    this.canHold = true;
+    while (this.nextQueue.length < this.nextCount) this.nextQueue.push(...getNextBag());
+    this.holdMino = null; this.canHold = true;
     this.scoreManager.reset?.();
-    this.isGameOver = false; // 再スタート時にリセット
+    this.isGameOver = false;
     this.updateState();
   }
 
-  async start() {
-    // init完了を保証してから開始
-    await this._initPromise;
+  start() {
+    this._loadSettings();
     this.reset();
     this.spawnMino();
   }
 
   spawnMino() {
-    if (this.nextQueue.length < this.nextCount + 1) {
-      this.nextQueue.push(...getNextBag());
-    }
     this.currentMino = this.nextQueue.shift();
-    if (checkCollision(this.field, this.currentMino)) {
-      this.isGameOver = true;
-      this.onGameOver?.();
-    }
+    if (this.nextQueue.length <= 7) this.nextQueue.push(...getNextBag());
+    this.currentMino.x = 4; this.currentMino.y = 0;
     this.canHold = true;
-    this.render();
+    if (checkCollision(this.field, this.currentMino)) this.onGameOver?.();
+    else this.render();
+    this.updateState();
   }
 
   hold() {
-    if (!this.enableHold) return;
-    if (!this.canHold) return;
+    if (!this.enableHold || !this.canHold) return;
     const temp = this.holdMino;
     this.holdMino = cloneMino(this.currentMino);
-    if (temp) {
-      this.currentMino = cloneMino(temp);
-    } else {
-      this.currentMino = this.nextQueue.shift();
-      this.nextQueue.push(...getNextBag());
-    }
-    this.currentMino.x = 4;
-    this.currentMino.y = 0;
-    this.canHold = false;
+    if (temp) this.currentMino = cloneMino(temp);
+    else { this.currentMino = this.nextQueue.shift(); this.nextQueue.push(...getNextBag()); }
+    this.currentMino.x = 4; this.currentMino.y = 0;
+    this.canHold = false; this.lastSpin = { rotated:false };
     this.render();
   }
 
   rotate(dir) {
-    const rotated = rotateMino(this.currentMino, dir);
+    const realDir =
+      (dir === "left")
+        ? (this.reverseRotation ? "right" : "left")
+        : (this.reverseRotation ? "left"  : "right");
+    const rotated = rotateMino(this.currentMino, realDir);
     if (!checkCollision(this.field, rotated)) {
       this.currentMino = rotated;
+      this.lastSpin = { rotated: true };
       this.render();
     }
   }
 
   hardDrop() {
     if (!this.enableHardDrop) return;
-    while (!checkCollision(this.field, { ...this.currentMino, y: this.currentMino.y + 1 })) {
-      this.currentMino.y++;
-    }
-    placeMino(this.field, this.currentMino);
-    const cleared = clearLines(this.field);
-    this.onClear?.(cleared);
-    this.spawnMino();
+    while (!checkCollision(this.field, { ...this.currentMino, y: this.currentMino.y + 1 })) this.currentMino.y++;
+    this.lockAndScore();
   }
 
   moveMino(dx, dy) {
@@ -128,63 +176,58 @@ export class SingleGameBase {
     if (!checkCollision(this.field, next)) {
       this.currentMino = next;
       this.render();
-    } else if (dy !== 0) {
-      // 下方向に衝突 → 設置
-      placeMino(this.field, this.currentMino);
-      const cleared = clearLines(this.field);
-      this.onClear?.(cleared);
-      this.spawnMino();
+    } else if (dy === 1) {
+      this.lockAndScore();
     }
-  }
-
-  render() {
-    setDrawState({
-      field: this.field,
-      mino: this.currentMino,
-      hold: this.holdMino,
-      queue: this.nextQueue,
-      count: this.nextCount,
-    });
-    drawField(this.field);
-    if (this.showGhost) {
-      drawGhost(this.field, this.currentMino);
-    }
-    drawMino(this.currentMino);
-    drawHold(this.holdMino);
-    drawNext(this.nextQueue, this.nextCount);
     this.updateState();
   }
 
+  lockAndScore() {
+    placeMino(this.field, this.currentMino);
+    const fieldBeforeClear = this.field.map(r => r.slice());
+    const cleared = clearLines(this.field);
+
+    const type = (typeof classifyTSpinStrict === "function")
+      ? classifyTSpinStrict(this.currentMino, fieldBeforeClear, this.lastSpin, cleared)
+      : "normal";
+
+    this.lastSpin = { rotated:false };
+
+    const pc = (cleared > 0) && isPerfectClear(this.field);
+    const res = this.scoreManager.applyClear({ lines: cleared, type, perfectClear: pc });
+
+    // ★演出（見出し＋バッジ）
+    this.effects?.onClear({ lines: cleared, type, b2b: res.b2b, combo: res.combo, perfectClear: pc });
+
+    // 互換フック（必要ならUIで拾える）
+    this.onClear?.(cleared, { type, perfectClear: pc, ...res });
+
+    this.spawnMino();
+  }
+
+  render() {
+    drawField(this.field);
+    if (this.showGhost && this.currentMino) drawGhost(this.field, this.currentMino);
+    drawMino(this.currentMino);
+    drawNext(this.nextQueue, this.nextCount);
+    drawHold(this.holdMino);
+    setDrawState({ field:this.field, mino:this.currentMino, queue:this.nextQueue, count:this.nextCount, hold:this.holdMino });
+  }
+
   updateState() {
-    this.onStateUpdate?.({
-      field: this.field,
-      currentMino: this.currentMino,
-      holdMino: this.holdMino,
-      nextQueue: this.nextQueue,
-      score: this.scoreManager.getState?.(),
-      isGameOver: this.isGameOver,
-    });
+    this.onStateUpdate?.({ field:this.field, mino:this.currentMino, queue:this.nextQueue, count:this.nextCount, hold:this.holdMino });
   }
 
   handleKey(action) {
-    if (this.isGameOver) return; // GAME OVER 後は入力を無効化
-
+    if (this.isGameOver) return;
     switch (action) {
       case "moveLeft": this.moveMino(-1, 0); break;
       case "moveRight": this.moveMino(1, 0); break;
       case "softDrop": this.moveMino(0, 1); break;
-      case "rotateLeft":
-        if (this.reverseRotation) { this.rotate("right"); } else { this.rotate("left"); }
-        break;
-      case "rotateRight":
-        if (this.reverseRotation) { this.rotate("left"); } else { this.rotate("right"); }
-        break;
-      case "hold":
-        if (this.enableHold) this.hold();
-        break;
-      case "hardDrop":
-        if (this.enableHardDrop) this.hardDrop();
-        break;
+      case "rotateLeft": this.rotate("left"); break;
+      case "rotateRight": this.rotate("right"); break;
+      case "hold": this.hold(); break;
+      case "hardDrop": this.hardDrop(); break;
     }
   }
 }

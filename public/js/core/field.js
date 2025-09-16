@@ -39,31 +39,32 @@ export function clearLines(field) {
   return cleared;
 }
 
+// ★全消し（Perfect Clear）：行消しがあった後、盤面が空なら true
+export function isPerfectClear(field) {
+  return field.every(row => row.every(cell => !cell));
+}
+
 export function getFieldSize() {
   return { width: WIDTH, height: HEIGHT };
 }
 
-// AI用のクラス
+// AI 用（既存）
 export class Field {
   constructor() {
     this.grid = initField();
   }
-
   clone() {
     const newField = new Field();
     newField.grid = this.grid.map(row => [...row]);
     return newField;
   }
+  check(mino) { return checkCollision(this.grid, mino); }
+  place(mino) { placeMino(this.grid, mino); }
+  clearLines() { clearLines(this.grid); }
+}
 
-  check(mino) {
-    return checkCollision(this.grid, mino);
-  }
-
-  place(mino) {
-    placeMino(this.grid, mino);
-  }
-
-  clearLines() {
-    clearLines(this.grid);
-  }
+// 末尾の export 群はそのまま、関数定義のどこかに追加
+export function createEmptyField() {
+  // テスター互換用。中身は initField() と同じ
+  return initField();
 }

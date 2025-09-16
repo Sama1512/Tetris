@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8"/>
+<title>Score & Judge 自動チェック</title>
+<style>
+    body{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;margin:24px}
+    .card{border:1px solid #aaa3;border-radius:12px;padding:16px;margin-bottom:16px}
+    .ok{color:#2e7d32;font-weight:700}.ng{color:#c62828;font-weight:700}
+    .log{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;background:#111;color:#eee;padding:12px;border-radius:8px}
+</style>
+<h1>Score & Judge 自動チェック（PS不要）</h1>
+<div class="card">
+    <button id="run">テスト実行</button>
+</div>
+<div class="card"><h2>結果</h2><ul id="results"></ul></div>
+<div class="card"><h2>ログ</h2><div id="log" class="log"></div></div>
+<script type="module" src="./score_check.js"></script>

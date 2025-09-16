@@ -45,8 +45,8 @@ export class MarathonGame extends SingleGameBase {
     this.startDropLoop();
   }
 
-  onClear(cleared) {
-    this.scoreManager.addLines(cleared);
+  onClear(/* cleared, info */) {
+    // 行数は applyClear 側で更新済み。ここではレベル調整だけやるなら：
     this.updateDropSpeed();
   }
 
