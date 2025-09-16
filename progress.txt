@@ -22,3 +22,5 @@
 　　　       Tetris - SavedPhaseOneを削除し、Tetris - SavedPhaseOneNewをTetris - SavedPhaseOneにリネーム
 2025/9/12   設定後の機能反映実装、旧Tetris - SavedPhaseOneを削除し、これにTetris - SavedPhaseOneを付ける
 　　　　     本当の意味でのフェーズ1完成
+2025/9/16   TSpin,REN,B2B,PerfectClear実装(残りはCombo,Tetris,SRS,WallKick)
+　　　　     と思ったらTSpinが怪しい(思わぬところで出てきてしまう)

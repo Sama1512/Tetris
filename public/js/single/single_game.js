@@ -25,7 +25,8 @@ export class SingleGameBase {
     this.reverseRotation = false;
     this.showGhost = true;
 
-    this.lastSpin = { rotated: false };
+    // 直前アクション（'rotate' | 'move' | 'none'）
+    this.lastAction = "none";
     this.init();
   }
 
@@ -136,6 +137,7 @@ export class SingleGameBase {
     if (this.nextQueue.length <= 7) this.nextQueue.push(...getNextBag());
     this.currentMino.x = 4; this.currentMino.y = 0;
     this.canHold = true;
+    this.lastAction = "none";           // 新しいミノは無行動スタート
     if (checkCollision(this.field, this.currentMino)) this.onGameOver?.();
     else this.render();
     this.updateState();
@@ -148,7 +150,8 @@ export class SingleGameBase {
     if (temp) this.currentMino = cloneMino(temp);
     else { this.currentMino = this.nextQueue.shift(); this.nextQueue.push(...getNextBag()); }
     this.currentMino.x = 4; this.currentMino.y = 0;
-    this.canHold = false; this.lastSpin = { rotated:false };
+    this.canHold = false;
+    this.lastAction = "move";           // hold は回転扱いではない
     this.render();
   }
 
@@ -160,7 +163,7 @@ export class SingleGameBase {
     const rotated = rotateMino(this.currentMino, realDir);
     if (!checkCollision(this.field, rotated)) {
       this.currentMino = rotated;
-      this.lastSpin = { rotated: true };
+      this.lastAction = "rotate";       // 直前は回転
       this.render();
     }
   }
@@ -168,6 +171,7 @@ export class SingleGameBase {
   hardDrop() {
     if (!this.enableHardDrop) return;
     while (!checkCollision(this.field, { ...this.currentMino, y: this.currentMino.y + 1 })) this.currentMino.y++;
+    this.lastAction = "move";           // ハードドロップしたら回転ではない
     this.lockAndScore();
   }
 
@@ -175,9 +179,13 @@ export class SingleGameBase {
     const next = { ...this.currentMino, x: this.currentMino.x + dx, y: this.currentMino.y + dy };
     if (!checkCollision(this.field, next)) {
       this.currentMino = next;
+      // ★strict（推奨）: 横移動 or ソフトドロップで 'move' に落とす
+      if (dx !== 0 || dy === 1) this.lastAction = "move";
+      // ★lenient にしたいなら上の行を次に差し替え：
+      // if (dx !== 0) this.lastAction = "move";  // ソフトドロップは許容
       this.render();
     } else if (dy === 1) {
-      this.lockAndScore();
+      this.lockAndScore();              // この時点で lastAction が 'rotate' ならT-Spin
     }
     this.updateState();
   }
@@ -187,11 +195,13 @@ export class SingleGameBase {
     const fieldBeforeClear = this.field.map(r => r.slice());
     const cleared = clearLines(this.field);
 
-    const type = (typeof classifyTSpinStrict === "function")
-      ? classifyTSpinStrict(this.currentMino, fieldBeforeClear, this.lastSpin, cleared)
-      : "normal";
-
-    this.lastSpin = { rotated:false };
+    const type = classifyTSpinStrict(
+      this.currentMino,
+      fieldBeforeClear,
+      { rotated: this.lastAction === "rotate" },
+      cleared
+    );
+    this.lastAction = "none";
 
     const pc = (cleared > 0) && isPerfectClear(this.field);
     const res = this.scoreManager.applyClear({ lines: cleared, type, perfectClear: pc });
