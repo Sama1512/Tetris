@@ -3,7 +3,8 @@
 ・フェーズ1：シングルプレイ完成（済）
 　基本操作、描画、スコア、ゲームオーバー、設定UI
 ・フェーズ2：演出追加
-　T-Spin、REN、B2B演出、テーマ切替、音
+　T-Spin・REN・B2B・Tetris・PerfectClear演出、SRS、WallKick、テーマ切替、音
+　(COMBOはRENを実装するため無し)
 ・フェーズ3：AIロジック統合
 　Go⇔C++通信、1P CPU操作、評価ベース思考実装
 ・フェーズ4：ぷよテト型対戦

@@ -160,10 +160,12 @@ export class SingleGameBase {
       (dir === "left")
         ? (this.reverseRotation ? "right" : "left")
         : (this.reverseRotation ? "left"  : "right");
-    const rotated = rotateMino(this.currentMino, realDir);
-    if (!checkCollision(this.field, rotated)) {
-      this.currentMino = rotated;
-      this.lastAction = "rotate";       // 直前は回転
+    // ★SRS版：フィールドと衝突関数を渡す
+    const rr = rotateMino(this.currentMino, realDir, this.field, checkCollision);
+    // 成功判定：kickIndex が -1 でなければ回転成功（0は無キック成功）
+    if (rr && rr.kickIndex !== -1) {
+      this.currentMino = rr.mino;
+      this.lastAction = "rotate";
       this.render();
     }
   }

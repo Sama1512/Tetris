@@ -43,6 +43,30 @@ export const MINOS = {
   ]
 };
 
+// --- SRS wall kicks (Guideline) ---
+const KICKS_JLSTZ = {
+  "0>1": [[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]],
+  "1>0": [[0,0],[1,0],[1,-1],[0,2],[1,2]],
+  "1>2": [[0,0],[1,0],[1,-1],[0,2],[1,2]],
+  "2>1": [[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]],
+  "2>3": [[0,0],[1,0],[1,1],[0,-2],[1,-2]],
+  "3>2": [[0,0],[-1,0],[-1,-1],[0,2],[-1,2]],
+  "3>0": [[0,0],[-1,0],[-1,-1],[0,2],[-1,2]],
+  "0>3": [[0,0],[1,0],[1,1],[0,-2],[1,-2]],
+};
+
+const KICKS_I = {
+  "0>1": [[0,0],[-2,0],[1,0],[-2,-1],[1,2]],
+  "1>0": [[0,0],[2,0],[-1,0],[2,1],[-1,-2]],
+  "1>2": [[0,0],[-1,0],[2,0],[-1,2],[2,-1]],
+  "2>1": [[0,0],[1,0],[-2,0],[1,-2],[-2,1]],
+  "2>3": [[0,0],[2,0],[-1,0],[2,1],[-1,-2]],
+  "3>2": [[0,0],[-2,0],[1,0],[-2,-1],[1,2]],
+  "3>0": [[0,0],[1,0],[-2,0],[1,-2],[-2,1]],
+  "0>3": [[0,0],[-1,0],[2,0],[-1,2],[2,-1]],
+};
+
+
 const COLORS = {
   I: "#0ff",
   O: "#ff0",
@@ -66,14 +90,54 @@ export function createMino() {
   };
 }
 
-export function rotateMino(mino, dir) {
-  const rot = dir === "left" ? (mino.rotation + 3) % 4 : (mino.rotation + 1) % 4;
-  return {
-    ...mino,
-    rotation: rot,
-    blocks: MINOS[mino.type][rot]
+export function rotateMino(mino, dir, field, checkCollision) {
+  // 2-arg fallback: no collision / no kicks (keep backward compatibility)
+  const simple = () => {
+    const rot = dir === "left" ? (mino.rotation + 3) % 4 : (mino.rotation + 1) % 4;
+    return { ...mino, rotation: rot, blocks: MINOS[mino.type][rot] };
   };
-}
+
+  // If no field or no checker, return plain rotated mino (legacy behavior)
+  if (!field || typeof checkCollision !== "function") {
+    return simple();
+  }
+
+  const from = mino.rotation|0;
+  const to   = dir === "left" ? (from + 3) % 4 : (from + 1) % 4;
+  const shape = MINOS[mino.type][to];
+
+  // O piece: no kicks, just rotate at same origin
+  if (mino.type === "O") {
+    const cand = { ...mino, rotation: to, blocks: shape };
+    const collides = checkCollision(field, cand);
+    if (!collides) {
+      return { mino: cand, kicked: false, kickIndex: 0 };
+    } else {
+      // cannot rotate -> return legacy rotated anyway (or stay? choose stay)
+      return { mino: mino, kicked: false, kickIndex: -1 };
+    }
+  }
+
+  const key = `${from}>${to}`;
+  const table = (mino.type === "I" ? KICKS_I : KICKS_JLSTZ)[key] || [[0,0]];
+
+  for (let i = 0; i < table.length; i++) {
+    const [dx, dy] = table[i];
+    const cand = {
+      ...mino,
+      x: mino.x + dx,
+      y: mino.y + dy,
+      rotation: to,
+      blocks: shape,
+    };
+    if (!checkCollision(field, cand)) {
+      return { mino: cand, kicked: i !== 0, kickIndex: i };
+    }
+  }
+
+  // All failed: stay as is
+  return { mino, kicked: false, kickIndex: -1 };
+};
 
 export function getBlocks(mino) {
   return mino.blocks.map(([dx, dy]) => [mino.x + dx, mino.y + dy]);
