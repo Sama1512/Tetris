@@ -5,38 +5,61 @@ export class SprintGame extends SingleGameBase {
   constructor(targetLines = 40) {
     super("game-canvas", 5, null);
     this.targetLines = targetLines;
+
+    // タイム計測
     this.startTime = 0;
-    this.elapsed = 0;
-    this.timerId = null;
-    this.dropInterval = null;
+    this.elapsed   = 0;
+    this._rafId    = null;
+
+    // 重力（Sprintは一定間隔でOK）
+    this._dropId   = null;
+    this._dropMs   = 500; // 必要なら設定化してもよい
   }
 
   async start(onStateUpdate) {
     this.onStateUpdate = onStateUpdate;
-    await super.start();
-    // 設定に応じてTIME表示
-    const settings = this.settings || (await import('../ui/settings_runtime.js')).getSettings?.();
-    try {
-      const showTime = this.settings ? this.settings['show-time'] : true;
-      const timeEl = document.getElementById('clear-time')?.parentElement; // ラベルと値の行
-      if (timeEl) timeEl.style.display = showTime ? '' : 'none';
-    } catch (e) {}
+    await super.start(); // ← ここで _loadSettings() 済み・spawn もされる
 
+    // TIME表示ON/OFF（settingsから反映）
+    try {
+      const s = JSON.parse(localStorage.getItem("settings") || "{}");
+      const showTime = (typeof s["show-time"] === "boolean") ? s["show-time"] : true;
+      const timeRow = document.getElementById("clear-time")?.parentElement; // ラベル＋値の行
+      if (timeRow) timeRow.style.display = showTime ? "" : "none";
+    } catch {}
+
+    // スコア系は SingleGameBase.lockAndScore() で applyClear を呼ぶので、
+    // ここで reset するだけ（lines/score はそこで更新される）
     this.scoreManager.reset?.();
+
+    // タイム計測開始
     this.startTime = performance.now();
-    this.updateTime();
-    this.dropInterval = setInterval(() => this.moveMino(0, 1), 500);
+    this._tickTime();
+
+    // ★重力は “gravity” ソースで呼ぶ（ロック遅延の延長をしない）
+    this._startGravity();
   }
 
-  updateTime() {
+  // ===== 内部 =====
+  _tickTime() {
     this.elapsed = performance.now() - this.startTime;
     updateUI(this.scoreManager.getState(), this.elapsed);
-    this.timerId = requestAnimationFrame(() => this.updateTime());
+    this._rafId = requestAnimationFrame(() => this._tickTime());
   }
 
-  onClear(cleared) {
-    this.scoreManager.addLines(cleared);
-    if (this.scoreManager.getState().lines >= this.targetLines) {
+  _startGravity() {
+    if (this._dropId) clearInterval(this._dropId);
+    this._dropId = setInterval(() => {
+      // SingleGameBase.moveMino(dx, dy, source) : source="gravity" でロック遅延を延長しない
+      this.moveMino(0, 1, "gravity");
+    }, this._dropMs);
+  }
+
+  // ★SingleGameBase.lockAndScore() が onClear?.(cleared, info) を投げるので、
+  //   それを2引数で受けて、linesの到達だけ監視する。
+  onClear(/* cleared, info */) {
+    const lines = this.scoreManager.getState()?.lines ?? 0;
+    if (lines >= this.targetLines) {
       this.endGame("CLEAR!", true);
     }
   }
@@ -46,19 +69,19 @@ export class SprintGame extends SingleGameBase {
   }
 
   endGame(message, isClear) {
-    this.isGameOver = true; // 入力と描画停止のフラグ
+    this.isGameOver = true; // 入力・描画停止
 
-    clearInterval(this.dropInterval);
-    cancelAnimationFrame(this.timerId);
+    if (this._dropId)  { clearInterval(this._dropId); this._dropId = null; }
+    if (this._rafId)   { cancelAnimationFrame(this._rafId); this._rafId = null; }
     this.render();
 
-    const time = this.formatTime(this.elapsed);
+    const time  = this._formatTime(this.elapsed);
     const lines = this.scoreManager.getState()?.lines ?? 0;
-    const resultBox = document.getElementById("result-box");
 
-    if (resultBox) {
+    const box = document.getElementById("result-box");
+    if (box) {
       const color = isClear ? "#00ff00" : "#ff3333";
-      resultBox.innerHTML = `
+      box.innerHTML = `
         <div class="result-message" style="color:${color};">${message}</div>
         <div class="result-lines">LINES: ${lines}</div>
         <div class="result-time">TIME: ${time}</div>
@@ -67,16 +90,16 @@ export class SprintGame extends SingleGameBase {
           <button onclick="location.href='../../html/index.html'">タイトルに戻る</button>
         </div>
       `;
-      resultBox.style.display = "block";
+      box.style.display = "block";
     } else {
       alert(`${message}\nLINES: ${lines}\nTIME: ${time}`);
     }
   }
 
-  formatTime(ms) {
+  _formatTime(ms) {
     const sec = ms / 1000;
-    const minutes = Math.floor(sec / 60);
-    const seconds = (sec % 60).toFixed(2);
-    return `${minutes}:${seconds.padStart(5, "0")}`;
+    const mm = Math.floor(sec / 60);
+    const ss = (sec % 60).toFixed(2);
+    return `${mm}:${ss.padStart(5, "0")}`;
   }
 }

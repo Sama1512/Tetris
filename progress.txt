@@ -23,5 +23,17 @@
 　　　       Tetris - SavedPhaseOneを削除し、Tetris - SavedPhaseOneNewをTetris - SavedPhaseOneにリネーム
 2025/9/12   設定後の機能反映実装、旧Tetris - SavedPhaseOneを削除し、これにTetris - SavedPhaseOneを付ける
 　　　　     本当の意味でのフェーズ1完成
-2025/9/16   TSpin,REN,B2B,(Single,Double,Triple,)Tetris,PerfectClear実装(残りはCombo,SRS,WallKick)
-　　　　     REN・B2Bは確認済み(ただしUIが重なっている)、他は未確認
+2025/9/16   TSpin・REN・B2B・(Single・Double・Triple・)Tetris・PerfectClear・SRS・WallKick実装(残りはテーマ切り替え・音)
+　　　　     TSpin・PerfectClear・SRSは未確認(module_check.htmlでは全て確認済み)、他は確認済み。Tetris - ImplementSomePhase2として保存。
+2025/9/17   DAR・ARR・ロック遅延を実装。旧Tetris - ImplementSomePhase2を削除し、新たに同名で保存。
+
+
+
+[実装状況]
+　　 技                         必要条件	              　　対応	           備考
+DT砲（TSD→TST）	     SRS／ロック遅延のmoveリセット／上限	    OK	設定 "lock-reset-policy": "move" 推奨
+パフェ（PC）	     行消し後に盤面空	                       OK	+3500 & 演出
+T-Spin FIN/NEO/ISO	直前回転＋角3/4（Singleは前面2角=2でフル） OK	名称別の加点はなし（tspin/mini扱い）
+TSS/TSD/TST	        上記＋行数	                             OK	  点は 800/1200/1600（+B2B/REN）
+Mini系	            直前回転＋角3/4 だが Singleで前面2角≠2     OK	Mini Single=200、Mini Doubleは設定相談
+その他スピン         Iスピン・SZスピン・JLスピン                OK   加点は無し

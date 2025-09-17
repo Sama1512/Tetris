@@ -1,70 +1,89 @@
+// 10LINEごとにレベル+1。
+// 重力ループは“間隔が変わった時だけ”再起動（ログもその時だけ）。
 import { SingleGameBase } from "./single_game.js";
 import { updateUI } from "../ui/ui.js";
 
 export class MarathonGame extends SingleGameBase {
-  constructor() {
-    super("game-canvas", 5, null);
-    this.currentLevel = 1;
-    this.dropInterval = null;
+  constructor(canvasId = "game-canvas", nextCount = 5, onStateUpdate = null) {
+    super(canvasId, nextCount, onStateUpdate);
+    this.level = 1;
+
+    this._dropId = null;   // setIntervalハンドル
+    this._lastMs = -1;     // 直近で使った重力間隔
+  }
+
+  // レベル→落下間隔(ms)。必要なら好みでテーブルを調整してOK
+  getDropIntervalMs() {
+    const table = [1000, 800, 700, 600, 500, 450, 400, 350, 300, 260, 230, 200, 180, 160, 140, 120, 100];
+    return table[Math.min(Math.max(this.level, 1) - 1, table.length - 1)];
   }
 
   async start(onStateUpdate) {
-    this.onStateUpdate = onStateUpdate;
-    await super.start(); // reset()とspawnMino()を呼び出す
-    this.updateDropSpeed(true);
-    this.startDropLoop();
+    this.onStateUpdate = onStateUpdate ?? this.onStateUpdate;
+    await super.start(); // reset() と spawnMino()
+
+    // 初回起動（必要時のみログ）
+    this._restartGravity(true);
+
+    // タブ非表示→停止／復帰→再開
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        if (this._dropId) { clearInterval(this._dropId); this._dropId = null; }
+      } else {
+        this._restartGravity(false);
+      }
+    });
   }
 
-  getDropInterval() {
-    if (typeof this.currentLevel !== "number" || isNaN(this.currentLevel)) {
-      console.warn("⚠️ currentLevel is invalid, resetting to 1");
-      this.currentLevel = 1;
-    }
-    return Math.max(100, 500 - (this.currentLevel - 1) * 50);
+  // 重力ループを“必要なときだけ”作り直す（間隔が同じなら何もしない）
+  _restartGravity(shouldLog) {
+    const ms = this.getDropIntervalMs();
+    if (ms === this._lastMs && this._dropId) return; // 変更なし：再起動不要
+
+    if (this._dropId) { clearInterval(this._dropId); this._dropId = null; }
+    this._dropId = setInterval(() => {
+      // ★重力は 'gravity' ソースで呼ぶ（ロック遅延の延長をしない）
+      this.moveMino(0, 1, "gravity");
+    }, ms);
+
+    this._lastMs = ms;
+    if (shouldLog) console.log(`🕒 Drop interval started: ${ms}ms (level ${this.level})`);
   }
 
-  startDropLoop() {
-    clearInterval(this.dropInterval);
-    const interval = this.getDropInterval();
-    this.dropInterval = setInterval(() => this.moveMino(0, 1), interval);
-    console.log(`🕒 Drop interval started: ${interval}ms (level ${this.currentLevel})`);
-  }
-
+  // 10LINE毎に level = floor(lines/10)+1 として再計算。
+  // 変化があった時だけ重力を再起動＆ScoreManager.levelにも反映。
   updateDropSpeed(force = false) {
-    const scoreState = this.scoreManager.getState();
-    if (!scoreState || typeof scoreState.level !== "number") {
-      console.warn("Invalid scoreState.level:", scoreState?.level);
-      return;
-    }
-    const newLevel = Number(scoreState.level);
-    if (isNaN(newLevel)) {
-      console.warn("newLevel is NaN! Raw value:", scoreState.level);
-      return;
-    }
-    this.currentLevel = newLevel;
-    this.startDropLoop();
+    const st = this.scoreManager.getState?.() || { lines: 0, level: 1 };
+    const lines = Number(st.lines) || 0;
+    const newLevel = Math.floor(lines / 10) + 1;
+
+    if (!force && newLevel === this.level) return; // レベル変わってないなら何もしない
+    this.level = newLevel;
+    // HUD側がscoreManager.levelを参照している場合のために同期
+    if (this.scoreManager) this.scoreManager.level = this.level;
+
+    this._restartGravity(true);
   }
 
-  onClear(/* cleared, info */) {
-    // 行数は applyClear 側で更新済み。ここではレベル調整だけやるなら：
-    this.updateDropSpeed();
+  // SingleGameBase.lockAndScore() から onClear が飛んでくる（2引数）
+  onClear(/* lines, info */) {
+    // 行数は applyClear 側で更新済み。ここではレベルだけ追従。
+    this.updateDropSpeed(false);
   }
 
   onGameOver() {
-    clearInterval(this.dropInterval);
+    if (this._dropId) { clearInterval(this._dropId); this._dropId = null; }
     this.endGame("GAME OVER", false);
   }
 
   onClearFinish() {
-    clearInterval(this.dropInterval);
+    if (this._dropId) { clearInterval(this._dropId); this._dropId = null; }
     this.endGame("CLEAR!", true);
   }
 
   endGame(message, isClear) {
-    this.isGameOver = true; // 入力・描画停止フラグを立てる
-
-    this.render(); // 最終描画
-    // showGameOver(); // 背景表示(ui/ui.jsにあるが、現時点で二重に表示されてしまうため今後削除対象かも)
+    this.isGameOver = true;
+    this.render();
 
     const state = this.scoreManager?.getState() ?? {};
     const score = state.score ?? 0;
@@ -89,8 +108,9 @@ export class MarathonGame extends SingleGameBase {
   }
 
   render() {
+    // HUD にも level を反映したいので、状態に上書きして渡す
+    const st = this.scoreManager.getState?.() || {};
+    updateUI({ ...st, level: this.level });
     super.render();
-    const scoreState = this.scoreManager.getState();
-    updateUI(scoreState);
   }
 }
