@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  ai:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: tetris-ai
+    container_name: tetris-ai
+    ports:
+      - "8080:8080"
+    environment:
+      - ENGINE_PATH=/app/engine

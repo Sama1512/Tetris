@@ -1,7 +1,24 @@
-[
-  0.8,
-  0.5,
-  0.3,
-  1.0,
-  1.2
-]
+{
+  "levels": {
+    "EASY":     { "depth": 1, "beam": 4,  "time_ms": 3,  "noise": 0.30, "misdrop": 0.10, "prefer_tspin": 0.1, "prefer_ren": 0.1, "hold_search": false },
+    "BASIC":    { "depth": 1, "beam": 6,  "time_ms": 5,  "noise": 0.20, "misdrop": 0.05, "prefer_tspin": 0.2, "prefer_ren": 0.2, "hold_search": false },
+    "NORMAL":   { "depth": 2, "beam": 8,  "time_ms": 8,  "noise": 0.10, "misdrop": 0.02, "prefer_tspin": 0.3, "prefer_ren": 0.3, "hold_search": true  },
+    "ADVANCED": { "depth": 2, "beam": 12, "time_ms": 10, "noise": 0.06, "misdrop": 0.01, "prefer_tspin": 0.4, "prefer_ren": 0.4, "hold_search": true  },
+    "HARD":     { "depth": 3, "beam": 16, "time_ms": 14, "noise": 0.04, "misdrop": 0.01, "prefer_tspin": 0.5, "prefer_ren": 0.5, "hold_search": true  },
+    "EXPERT":   { "depth": 4, "beam": 24, "time_ms": 20, "noise": 0.03, "misdrop": 0.005,"prefer_tspin": 0.6, "prefer_ren": 0.6, "hold_search": true  },
+    "MASTER":   { "depth": 5, "beam": 32, "time_ms": 28, "noise": 0.02, "misdrop": 0.003,"prefer_tspin": 0.7, "prefer_ren": 0.7, "hold_search": true  },
+    "APPEND":   { "depth": 5, "beam": 36, "time_ms": 28, "noise": 0.02, "misdrop": 0.003,"prefer_tspin": 0.9, "prefer_ren": 0.8, "hold_search": true  },
+    "LUNATIC":  { "depth": 6, "beam": 48, "time_ms": 40, "noise": 0.01, "misdrop": 0.001,"prefer_tspin": 1.0, "prefer_ren": 0.9, "hold_search": true  },
+    "ULTIMA":   { "depth": 7, "beam": 64, "time_ms": 70, "noise": 0.00, "misdrop": 0.000,"prefer_tspin": 1.2, "prefer_ren": 1.0, "hold_search": true  }
+  },
+  "weights": {
+    "aggregate_height": -0.510066,
+    "complete_lines":    0.760666,
+    "holes":            -0.35663,
+    "bumpiness":        -0.184483,
+    "tspin_bonus":       1.25,
+    "b2b_bonus":         0.40,
+    "ren_bonus":         0.05,
+    "pc_bonus":          3.00
+  }
+}

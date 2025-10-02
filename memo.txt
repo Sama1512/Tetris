@@ -525,3 +525,12 @@ Ctrl + Shift + P → Live Server: Stop Live Server
 
 [注意事項]
 キー設定はlocalStorageに保存されているのでリセットする場合はlocalStorage.clear()する
+
+
+[難易度の意味付け（ざっくり動作）]
+EASY：ノイズ＆ミスドロップ高め。時々変な置き方する“始めたて”感。
+BASIC/NORMAL：ノイズ抑えめ、Greedyやけど明確に強い。
+ADVANCED/HARD：ホールド検索ON、T-Spin嗜好アップ。
+EXPERT/MASTER：将来的な深さ拡張で強化見込み（今は重みで有利に）。
+APPEND：T-Spin偏愛寄り、RENも高評価。
+LUNATIC/ULTIMA：探索深度＆ビーム幅の器をデカくしてある。後から探索エンジン差し替えで即効化け物化。

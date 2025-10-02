@@ -7,11 +7,9 @@ window.addEventListener("DOMContentLoaded", () => {
     window.location.href = "./single/sprint.html";
   });
 
-  /*
   document.getElementById("cpu-btn")?.addEventListener("click", () => {
-    window.location.href = "./cpu.html"; // ※今後 cpu.html に分割予定ならここも変更(コメントアウト解除時にディレクトリ指定は要確認)
+    window.location.href = "./versus/cpu.html";
   });
-  */
 
   document.getElementById("settings-btn")?.addEventListener("click", () => {
     window.location.href = "./settings.html";

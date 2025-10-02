@@ -188,3 +188,217 @@ input[type="checkbox"].toggle:checked::before {
     transform: translateX(20px);
   }
 }
+
+/* テーマ/音の2カラム整列 */
+.settings .setting-theme,
+.settings .setting-sound,
+.settings .setting-effects {
+  display:grid;
+  grid-template-columns: 160px 1fr;
+  gap:12px;
+  align-items:center;
+  max-width:720px;
+}
+.settings .setting-effects .pair{
+  display:grid;
+  grid-template-columns: 120px 1fr;
+  gap:8px;
+  align-items:center;
+}
+#sfx-volume{ width:min(320px, 40vw); }
+
+/* ボタンは常に前面（キャラに隠れないように） */
+.settings .button-row{ position:relative; z-index:99999; pointer-events:auto; }
+.settings .save-button, .settings .return-button{ pointer-events:auto; }
+
+/* === Saveボタンのミニバッジ（レイアウト非干渉） === */
+#save-btn { position: relative; overflow: visible; }
+
+#save-btn.saved::after,
+#save-btn.autosaved::after {
+  content: "✓ 保存しました";
+  position: absolute;
+  left: 50%;
+  top: -8px;                 /* ボタンのちょい上に出す */
+  transform: translate(-50%, -100%) scale(.9);
+  background: rgba(0, 179, 126, .95); /* 目に優しい緑 */
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.25);
+  opacity: 0;
+  pointer-events: none;
+  animation: saveFlash .9s ease-out forwards;
+  z-index: 2147483647;       /* なんぼでも前面 */
+}
+
+@keyframes saveFlash {
+  0%   { opacity: 0; transform: translate(-50%, -120%) scale(.85); }
+  20%  { opacity: 1; transform: translate(-50%, -105%) scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -120%) scale(.95); }
+}
+
+/* ==== テーマ/音タブの見直し（横スクロール撲滅＆整列） ==== */
+
+/* ページ内の横スクロールは発生させない（内側で完結） */
+.tab-container, .tab-content { overflow-x: clip; }   /* clip=隠す。hiddenでもOK */
+#tab-theme { width: 100%; }
+
+/* “最小幅0”を明示してグリッド項目のはみ出しを防ぐ（横スク原因TOP3） */
+.settings .setting-theme,
+.settings .setting-sound,
+.settings .setting-effects,
+.settings .setting-effects .pair,
+.settings input,
+.settings select { min-width: 0; }
+
+/* ラベルと入力の横並びを統一。幅は 160px : 自動 : 右端(値) の3カラム */
+.settings .setting-theme,
+.settings .setting-sound {
+  display: grid;
+  grid-template-columns: 160px 1fr auto;  /* ラベル / 入力 / 付帯（%表示など） */
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  max-width: 720px;   /* 画面に応じて適度に収まる上限 */
+  margin: 8px auto;
+}
+
+/* ラベルは右寄せ（読みやすい） */
+.settings .setting-theme > label,
+.settings .setting-sound  > label[for] {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+/* “ミュート”みたいに <label><input>… の1要素だけの行は、右2カラムに展開して左寄せ */
+.settings .setting-sound > label:not([for]) {
+  grid-column: 2 / span 2;               /* 2〜3列目を占有 */
+  justify-self: start;
+  display: flex; align-items: center; gap: 10px;
+}
+
+/* スライダーの幅は画面に合わせて伸縮（オーバーフローしない） */
+#sfx-volume,
+#effects-badge-scale {
+  width: clamp(240px, 50vw, 520px);
+  max-width: 100%;
+}
+
+/* スライダー右の数値は3列目に。最小幅を確保して崩れにくく */
+#sfx-volume-out,
+#effects-badge-scale-out {
+  grid-column: 3;
+  justify-self: start;
+  min-width: 3ch;
+  text-align: left;
+}
+
+/* テーマのセレクトも自然に広がるが、はみ出さない */
+#theme-select { max-width: 100%; }
+
+/* 演出（fieldset）は見出し付きのカード風に。中身は3カラムグリッドで統一 */
+.settings .setting-effects {
+  display: grid;
+  grid-template-columns: 160px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  max-width: 720px;
+  margin: 12px auto;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--border-color, #666);
+  border-radius: 10px;
+}
+
+/* legendの少しだけ強調 */
+.settings .setting-effects > legend {
+  padding: 0 8px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+/* 「演出を表示」チェックは右2カラムへ置く（ミュートと同じ動き） */
+.settings .setting-effects > label {
+  grid-column: 2 / span 2;
+  justify-self: start;
+  display: flex; align-items: center; gap: 10px;
+}
+
+/* .pair はコンテンツ化（親グリッドに直接並べる） */
+.settings .setting-effects .pair { display: contents; }
+
+/* .pair 内ラベルは1列目へ、値や入力は2〜3列目へ */
+.settings .setting-effects .pair > label {
+  grid-column: 1;
+  justify-self: end;
+  white-space: nowrap;
+}
+#effects-badge-scale   { grid-column: 2; }
+#effects-badge-scale-out { grid-column: 3; }
+
+/* 連続表示ラベルの入力は2列目を広く使う */
+#combo-label {
+  grid-column: 2 / span 2;
+  width: clamp(220px, 40vw, 340px);
+  max-width: 100%;
+}
+
+/* モバイル時は縦積み（読みやすさ優先） */
+@media (max-width: 600px) {
+  .settings .setting-theme,
+  .settings .setting-sound,
+  .settings .setting-effects {
+    grid-template-columns: 1fr;     /* 1カラム */
+  }
+  .settings .setting-theme > label,
+  .settings .setting-sound  > label[for],
+  .settings .setting-effects .pair > label {
+    justify-self: start;
+  }
+  #sfx-volume,
+  #effects-badge-scale {
+    width: 100%;
+  }
+  #sfx-volume-out,
+  #effects-badge-scale-out {
+    grid-column: 1;
+    justify-self: end;
+  }
+}
+
+/* テーマ/音タブの時だけページスクロールを止める */
+body.settings.no-page-scroll {
+  overflow: hidden !important;
+  height: 100dvh;
+}
+
+/* 非表示タブは確実に隠す（hidden属性対応・保険）*/
+.tab-content[hidden] { display: none !important; }
+
+/* 非表示タブは完全に隠す（保険） */
+.tab-content[hidden] { display: none !important; }
+
+/* ← NEW: テーマ/音タブのときは “ページ全体” のスクロールを止める（htmlも対象） */
+html.no-scroll-root,
+body.settings.no-page-scroll {
+  overflow: hidden !important;
+  height: 100svh;     /* iOS/Android対策。fallback が要るなら下2行を追加 */
+  height: 100dvh;
+  height: 100vh;
+  overscroll-behavior: none;    /* バウンス抑止 */
+}
+
+/* ← NEW: 念のためテーマパネル側も内側スクロールを発生させない */
+#tab-theme {
+  overflow-y: clip !important;  /* hidden 相当（スクロール不可 & バー非表示） */
+  max-height: none !important;
+}
+
+/* 見た目だけバーを消したい（スクロールは残す）場合の保険：必要なら有効化
+html.no-scroll-root { scrollbar-width: none; }
+html.no-scroll-root::-webkit-scrollbar { display: none; }
+*/

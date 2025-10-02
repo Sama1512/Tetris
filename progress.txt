@@ -17,15 +17,16 @@
 　ユーザー認証、セーブ同期、フレンド対戦
 
 [進捗状況記録ファイル]
-2025/6/26   フェーズ1終了(設定画面からの画面遷移＋設定UIのレイアウトについて、要改善)(Tetris - SavedPhaseOne)
+2025/6/26   フェーズ1終了(設定画面からの画面遷移＋設定UIのレイアウトについて、要改善)(Tetris - SavedPhase1)
 2025/6/29   フェーズ1終了(設定後の機能反映のみ未)(Tetris - SavedPhaseOneNew)
 2025/9/12   フェーズ2に入っていたが、崩壊したため消去Tetris - SavedPhaseOneNewに戻る
-　　　       Tetris - SavedPhaseOneを削除し、Tetris - SavedPhaseOneNewをTetris - SavedPhaseOneにリネーム
-2025/9/12   設定後の機能反映実装、旧Tetris - SavedPhaseOneを削除し、これにTetris - SavedPhaseOneを付ける
+　　　       Tetris - SavedPhase1を削除し、Tetris - SavedPhaseOneNewをTetris - SavedPhase1にリネーム
+2025/9/12   設定後の機能反映実装、旧Tetris - SavedPhase1を削除し、これにTetris - SavedPhase1を付ける
 　　　　     本当の意味でのフェーズ1完成
 2025/9/16   TSpin・REN・B2B・(Single・Double・Triple・)Tetris・PerfectClear・SRS・WallKick実装(残りはテーマ切り替え・音)
 　　　　     TSpin・PerfectClear・SRSは未確認(module_check.htmlでは全て確認済み)、他は確認済み。Tetris - ImplementSomePhase2として保存。
 2025/9/17   DAR・ARR・ロック遅延を実装。旧Tetris - ImplementSomePhase2を削除し、新たに同名で保存。
+2025/9/18   フェーズ2終了(テーマ/音のスクロールとテーマ切り替えの反映だけよくわからないが)。Tetris - SavedPhase2として保存。
 
 
 
@@ -37,3 +38,36 @@ T-Spin FIN/NEO/ISO	直前回転＋角3/4（Singleは前面2角=2でフル） OK	
 TSS/TSD/TST	        上記＋行数	                             OK	  点は 800/1200/1600（+B2B/REN）
 Mini系	            直前回転＋角3/4 だが Singleで前面2角≠2     OK	Mini Single=200、Mini Doubleは設定相談
 その他スピン         Iスピン・SZスピン・JLスピン                OK   加点は無し
+
+
+
+[C++ビルド手順(PowerShell)]
+cd core/cpp
+# 元ソースの絶対パス（そのままコピペでOK）
+$src   = "C:\Users\m_sato\OneDrive - ooharastudent\デスクトップ\アプリケーション開発\Tetris\core\cpp"
+$build = "C:\Tetris_build\cpp"   # ← OneDriveの外
+# きれいに作り直し
+Remove-Item -Recurse -Force $build -ErrorAction SilentlyContinue
+New-Item -ItemType Directory $build | Out-Null
+# 構成（VS2022/x64）。ログ多めに出す
+cmake -S $src -B $build -G "Visual Studio 17 2022" -A x64 -T host=x64 --log-level=VERBOSE
+# ビルド（Release）
+cmake --build $build --config Release -- /m
+# 生成物をプロジェクト既定の場所へ配置
+New-Item "$src\..\bin" -ItemType Directory -Force | Out-Null
+Copy-Item "$build\Release\ai_engine.exe" "$src\..\bin\ai_engine.exe" -Force
+# 確認
+Get-ChildItem "$src\..\bin\ai_engine*.exe"
+
+
+
+[Goサーバ起動]
+# パスを絶対解決（スペース対策）
+$env:AI_ENGINE_BIN  = (Resolve-Path "C:\Users\m_sato\OneDrive - ooharastudent\デスクトップ\アプリケーション開発\Tetris\core\bin\ai_engine.exe")
+$env:AI_CONFIG_PATH = (Resolve-Path "C:\Users\m_sato\OneDrive - ooharastudent\デスクトップ\アプリケーション開発\Tetris\config\ai_params.json")
+
+cd "C:\Users\m_sato\OneDrive - ooharastudent\デスクトップ\アプリケーション開発\Tetris\server\go"
+go mod init tetris-ai-server 2>$null
+go mod tidy
+go run .
+# → "AI server listening on :8080" が出たらOK

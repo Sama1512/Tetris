@@ -1,0 +1,101 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CPU対戦</title>
+
+  <!-- 共通CSS -->
+  <link rel="stylesheet" href="../../css/base.css" />
+  <link rel="stylesheet" href="../../css/layout.css" />
+
+  <!-- ゲーム共通 -->
+  <link rel="stylesheet" href="../../css/pages/game.css" />
+
+  <!-- コンポーネント -->
+  <link rel="stylesheet" href="../../css/components/button.css" />
+  <link rel="stylesheet" href="../../css/components/message.css" />
+  <link rel="stylesheet" href="../../css/components/result.css" />
+
+  <style>
+    /* 左：プレイヤー | 中央線 | 右：CPU （左右対称）*/
+    #versus-container {
+      display: grid;
+      grid-template-columns: 1fr minmax(300px, 420px) 1fr 16px 1fr minmax(300px, 420px) 1fr;
+      gap: 12px;
+      align-items: start;
+      justify-content: center;
+      margin: 12px auto;
+      max-width: 1400px;
+    }
+    .label { text-align: center; font-weight: 600; margin-bottom: 6px; }
+    .stack { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    canvas { background: #111; border-radius: 8px; }
+    #axis-line { width: 2px; background: linear-gradient(#999,#ddd); margin: 0 6px; }
+    @media (max-width: 1080px) {
+      #versus-container {
+        grid-template-columns: 1fr;
+      }
+      #axis-line { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <header class="page-header">
+      <h1>vs CPU</h1>
+    </header>
+
+    <main>
+      <div id="versus-container">
+        <!-- 左ブロック：プレイヤー -->
+        <div class="stack">
+          <div class="label">HOLD</div>
+          <canvas id="player-hold-canvas" width="160" height="160"></canvas>
+        </div>
+
+        <div class="stack">
+          <div class="label">PLAYER</div>
+          <canvas id="player-canvas"></canvas>
+        </div>
+
+        <div class="stack">
+          <div class="label">NEXT</div>
+          <canvas id="player-next-canvas" width="160" height="480"></canvas>
+        </div>
+
+        <!-- 中央対称軸 -->
+        <div id="axis-line"></div>
+
+        <!-- 右ブロック：CPU（線対称）-->
+        <div class="stack">
+          <div class="label">NEXT</div>
+          <canvas id="cpu-next-canvas" width="160" height="480"></canvas>
+        </div>
+
+        <div class="stack">
+          <div class="label">CPU</div>
+          <canvas id="cpu-canvas"></canvas>
+        </div>
+
+        <div class="stack">
+          <div class="label">HOLD</div>
+          <canvas id="cpu-hold-canvas" width="160" height="160"></canvas>
+        </div>
+      </div>
+
+      <!-- 結果表示（共通スタイル流用）-->
+      <div id="result-box" style="display:none;">
+        <div class="result-message"></div>
+        <div class="result-buttons">
+          <button id="retry-button">リトライ</button>
+          <button id="title-button">タイトルに戻る</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="../../js/versus/cpu_game.js"></script>
+</body>
+</html>
