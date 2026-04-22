@@ -2,13 +2,13 @@
 全7フェーズ
 ・フェーズ1：シングルプレイ完成（済）
 　基本操作、描画、スコア、ゲームオーバー、設定UI
-・フェーズ2：演出追加
+・フェーズ2：演出追加（済）
 　T-Spin・REN・B2B・Tetris・PerfectClear演出、SRS、WallKick、テーマ切替、音
 　(COMBOはRENを実装するため無し)
-・フェーズ3：AIロジック統合
-　Go⇔C++通信、1P CPU操作、評価ベース思考実装
-・フェーズ4：ぷよテト型対戦
-　固定ターゲット、ローカル/オンライン対戦、ガベージ処理
+・フェーズ3：AIロジック統合（済）
+　Go⇔C++通信（Docker環境）、CPU対戦、BFS経路探索、SRS・ヒューリスティック評価
+・フェーズ4：ぷよテト型対戦（部分実装）
+　固定ターゲット（1v1 CPU）、ガベージ処理、勝敗判定
 ・フェーズ5：Tetris 99型対戦
 　ターゲットUI、バッジ、カウンター、99人構成、チームモード
 ・フェーズ6：リプレイ・観戦・成績
@@ -16,58 +16,62 @@
 ・フェーズ7：クラウド／アカウント
 　ユーザー認証、セーブ同期、フレンド対戦
 
-[進捗状況記録ファイル]
+[進捗状況記録]
 2025/6/26   フェーズ1終了(設定画面からの画面遷移＋設定UIのレイアウトについて、要改善)(Tetris - SavedPhase1)
 2025/6/29   フェーズ1終了(設定後の機能反映のみ未)(Tetris - SavedPhaseOneNew)
-2025/9/12   フェーズ2に入っていたが、崩壊したため消去Tetris - SavedPhaseOneNewに戻る
-　　　       Tetris - SavedPhase1を削除し、Tetris - SavedPhaseOneNewをTetris - SavedPhase1にリネーム
-2025/9/12   設定後の機能反映実装、旧Tetris - SavedPhase1を削除し、これにTetris - SavedPhase1を付ける
-　　　　     本当の意味でのフェーズ1完成
-2025/9/16   TSpin・REN・B2B・(Single・Double・Triple・)Tetris・PerfectClear・SRS・WallKick実装(残りはテーマ切り替え・音)
-　　　　     TSpin・PerfectClear・SRSは未確認(module_check.htmlでは全て確認済み)、他は確認済み。Tetris - ImplementSomePhase2として保存。
-2025/9/17   DAR・ARR・ロック遅延を実装。旧Tetris - ImplementSomePhase2を削除し、新たに同名で保存。
-2025/9/18   フェーズ2終了(テーマ/音のスクロールとテーマ切り替えの反映だけよくわからないが)。Tetris - SavedPhase2として保存。
-
-
+2025/9/12   フェーズ2に入っていたが、崩壊したため消去。SavedPhaseOneNewに戻る
+2025/9/12   設定後の機能反映実装。本当の意味でのフェーズ1完成
+2025/9/16   TSpin・REN・B2B・Tetris・PerfectClear・SRS・WallKick実装
+2025/9/17   DAS・ARR・ロック遅延を実装
+2025/9/18   フェーズ2終了。Tetris - SavedPhase2として保存
+2026/4/21   フェーズ3・4部分実装完了
+             ・DockerでGoサーバー＋C++エンジンを統合（BFS経路探索版に全面刷新）
+             ・CPU対戦モード（Lv1〜10）実装
+             ・ガベージ処理（接地時のみ押し上げ）実装
+             ・ゲームオーバー判定を正式仕様（Block Out / Lock Out）に修正
+             ・B2B・REN・ALL CLEARバッジのテキスト視認性改善
+             ・スポーン地点をガイドライン準拠（y=-1）に修正
+             コミット: renewal CPU
 
 [実装状況]
-　　 技                         必要条件	              　　対応	           備考
-DT砲（TSD→TST）	     SRS／ロック遅延のmoveリセット／上限	    OK	設定 "lock-reset-policy": "move" 推奨
-パフェ（PC）	     行消し後に盤面空	                       OK	+3500 & 演出
-T-Spin FIN/NEO/ISO	直前回転＋角3/4（Singleは前面2角=2でフル） OK	名称別の加点はなし（tspin/mini扱い）
-TSS/TSD/TST	        上記＋行数	                             OK	  点は 800/1200/1600（+B2B/REN）
-Mini系	            直前回転＋角3/4 だが Singleで前面2角≠2     OK	Mini Single=200、Mini Doubleは設定相談
-その他スピン         Iスピン・SZスピン・JLスピン                OK   加点は無し
+　　 技                         必要条件                         対応       備考
+DT砲（TSD→TST）         SRS／ロック遅延のmoveリセット／上限   OK    設定 "lock-reset-policy": "move" 推奨
+パフェ（PC）             行消し後に盤面空                       OK    +3500 & 演出
+T-Spin FIN/NEO/ISO      直前回転＋角3/4（Singleは前面2角=2でフル）OK  名称別の加点はなし（tspin/mini扱い）
+TSS/TSD/TST             上記＋行数                             OK    点は 800/1200/1600（+B2B/REN）
+Mini系                   直前回転＋角3/4 だが Singleで前面2角≠2  OK  Mini Single=200
+その他スピン              Iスピン・SZスピン・JLスピン            OK   加点は無し
 
 
+[プロジェクト起動方法（現行・Docker環境）]
+① run_tetris.bat をダブルクリック
+  → Dockerコンテナが自動起動
+  → http://localhost:5502 でゲームにアクセス可能
 
-[C++ビルド手順(PowerShell)]
-cd core/cpp
-# 元ソースの絶対パス（そのままコピペでOK）
-$src   = "C:\Users\m_sato\OneDrive - ooharastudent\デスクトップ\アプリケーション開発\Tetris\core\cpp"
-$build = "C:\Tetris_build\cpp"   # ← OneDriveの外
-# きれいに作り直し
-Remove-Item -Recurse -Force $build -ErrorAction SilentlyContinue
-New-Item -ItemType Directory $build | Out-Null
-# 構成（VS2022/x64）。ログ多めに出す
-cmake -S $src -B $build -G "Visual Studio 17 2022" -A x64 -T host=x64 --log-level=VERBOSE
-# ビルド（Release）
-cmake --build $build --config Release -- /m
-# 生成物をプロジェクト既定の場所へ配置
-New-Item "$src\..\bin" -ItemType Directory -Force | Out-Null
-Copy-Item "$build\Release\ai_engine.exe" "$src\..\bin\ai_engine.exe" -Force
-# 確認
-Get-ChildItem "$src\..\bin\ai_engine*.exe"
+もしDockerを使わない場合（手動）:
+# C++エンジンのコンパイル（MinGW必須）
+g++ -O3 -o server/engine.exe cpp/engine.cpp
+
+# Goサーバーのビルド＆起動
+go build -o server/run_server.exe server/main.go
+server/run_server.exe
+
+# フロントを http://localhost:5502 で配信（Live Serverなど）
 
 
+[注意事項]
+・キー設定はlocalStorageに保存されているのでリセットする場合はlocalStorage.clear()する
+・engine.exeはserver/フォルダに配置する（main.goが参照しているため）
+・ガベージは地形に密着または埋まる場合のみミノを押し上げる（本家仕様）
+・スポーン地点はy=-1（ガイドライン準拠）。限界まで積んだ時のBlock Outが正しく発動する
 
-[Goサーバ起動]
-# パスを絶対解決（スペース対策）
-$env:AI_ENGINE_BIN  = (Resolve-Path "C:\Users\m_sato\OneDrive - ooharastudent\デスクトップ\アプリケーション開発\Tetris\core\bin\ai_engine.exe")
-$env:AI_CONFIG_PATH = (Resolve-Path "C:\Users\m_sato\OneDrive - ooharastudent\デスクトップ\アプリケーション開発\Tetris\config\ai_params.json")
 
-cd "C:\Users\m_sato\OneDrive - ooharastudent\デスクトップ\アプリケーション開発\Tetris\server\go"
-go mod init tetris-ai-server 2>$null
-go mod tidy
-go run .
-# → "AI server listening on :8080" が出たらOK
+[難易度の意味付け（AI行動）]
+Lv1-4  ：ノイズ・ミスドロップで意図的に弱くしてある
+Lv5    ：ノイズなし・Hold無し・安定積みの基準レベル
+Lv6    ：Hold使用開始
+Lv7-8  ：2手読み・T-Spin/B2B狙い・Lv8以上は末尾SDをHDに圧縮
+Lv9-10 ：3手読み・完全最適化・人間超えの速度
+
+・フェーズ2：演出追加
+　T-Spin・REN・B2B・Tetris・PerfectClear演出、SRS、WallKick、テーマ切替、音
