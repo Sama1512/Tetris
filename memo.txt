@@ -301,57 +301,118 @@
 7. 技術構成（ハイブリッド）
 7.1 全体構成
 JavaScript：UI・操作処理・描画
-Go：サーバー処理、WebSocket管理、並列処理
-C++：AI・ロジック（評価・探索）
+Go：サーバー処理（APIルーティング・C++エンジン呼び出し）
+C++：AI探索エンジン（BFS経路探索・SRS・ヒューリスティック評価）
 
-7.2 フォルダ構成
+7.2 フォルダ構成（現行）
 /Tetris
-├── public/       # JS/HTML/CSS
-├── server/       # Go（管理層）
-├── core/         # C++（AI）
-├── config/       # JSON設定
-└── README.md
+├── public/                     # JS/HTML/CSS（フロントエンド）
+│   ├── html/                   # 各種HTML画面
+│   │   ├── index.html          # タイトル画面・モード選択
+│   │   ├── settings.html       # 設定画面
+│   │   ├── single/             # シングルプレイ
+│   │   │   ├── marathon.html
+│   │   │   └── sprint.html
+│   │   └── versus/             # 対戦モード
+│   │       └── cpu.html        # CPU対戦画面
+│   ├── js/
+│   │   ├── core/               # ゲームコアロジック
+│   │   │   ├── draw.js
+│   │   │   ├── field.js
+│   │   │   ├── input.js
+│   │   │   ├── mino.js
+│   │   │   ├── score.js
+│   │   │   └── srs.js
+│   │   ├── single/             # シングルプレイロジック
+│   │   │   ├── single_game.js  # ミノスポーン・ロック・ゲームオーバー
+│   │   │   ├── marathon.js
+│   │   │   └── sprint.js
+│   │   ├── versus/             # CPU対戦ロジック
+│   │   │   ├── ai_client.js    # tick管理・BFSパス実行・HD最適化
+│   │   │   ├── cpu_game.js     # 対戦ゲームループ
+│   │   │   ├── duo_game.js     # 重力タイマー・対戦描画
+│   │   │   └── versus_manager.js  # ガベージ送受信・勝敗判定
+│   │   └── ui/
+│   │       ├── effectManager.js
+│   │       ├── settings.js
+│   │       └── sound.js
+│   └── css/
+│       ├── base.css / layout.css
+│       ├── pages/
+│       │   ├── game.css
+│       │   └── versus.css      # CPU対戦専用スタイル
+│       └── components/
+├── server/                     # Goバックエンド
+│   └── main.go                 # APIエンドポイント・engine.exe呼び出し
+├── cpp/                        # C++エンジン本体
+│   └── engine.cpp              # BFS探索・SRS・ヒューリスティック全部入り
+├── config/                     # 設定ファイル
+│   ├── rules.json
+│   ├── ai_params.json          # レベルごとの評価重み
+│   └── keys.json
+├── docker/                     # Dockerfile等
+├── docker-compose.yml
+├── run_tetris.bat              # 起動スクリプト（ダブルクリックで起動）
+└── server/go.mod
 
-7.3 AIロジック（Go×C++ハイブリッド）
-GoがgoroutineでC++評価プロセスを複数並列起動
-C++がJSONで候補手を受け取り、最良手を評価
-GoがUIへスコア順の最適手を返却
-JSON例：
+
+7.3 AIロジック（BFS経路探索）
+JSクライアント(ai_client.js) → GOサーバー(main.go) → C++(engine.exe)
+C++がBFSで「到達可能な全配置」を探索し、ヒューリスティックで最良手を選択
+JSONで操作手順("R,CW,SD,HD,")を返却 → JSがtickごとに順次実行
+
+JSON入力例:
 {
-  "field": [[0,1,0,...],...],
-  "mino": "T",
-  "hold": true,
-  "next": ["L","I"]
+  "board": [0,0,0,...],  // フラット化した盤面(200要素)
+  "piece": "T",
+  "current_y": -1,
+  "level": 8
 }
-→
+
+JSON出力例:
 {
-  "x": 4,
-  "y": 0,
+  "path": "R,R,CW,SD,SD,HD,",
+  "targetX": 5,
   "rotation": 1,
-  "score": 45.3
+  "score": 12.5,
+  "useHold": false
 }
 
-8. 開発フェーズ（段階計画）
-フェーズ1：シングルプレイ完成（済）
-基本操作、描画、スコア、ゲームオーバー、設定UI
-フェーズ2：演出追加
-T-Spin、REN、B2B演出、テーマ切替、音
-フェーズ3：AIロジック統合
-Go⇔C++通信、1P CPU操作、評価ベース思考実装
-フェーズ4：ぷよテト型対戦
-固定ターゲット、ローカル/オンライン対戦、ガベージ処理
-フェーズ5：Tetris 99型対戦
-ターゲットUI、バッジ、カウンター、99人構成、チームモード
-フェーズ6：リプレイ・観戦・成績
-記録・再生・スロー／観戦UI／統計出力
-フェーズ7：クラウド／アカウント
-ユーザー認証、セーブ同期、フレンド対戦
 
-9. 今後の拡張案（Optional）
-オンラインランキング（スコア送信）
-フレンドマッチ
-AI対戦モード
-テーマ切り替え（レトロ風、未来風）
+8. 開発フェーズ状況
+フェーズ1：シングルプレイ完成  → ✅ 完了
+フェーズ2：演出追加            → ✅ 完了
+フェーズ3：AIロジック統合      → ✅ 完了（BFSエンジン・Docker環境）
+フェーズ4：ぷよテト型対戦      → 🔧 部分実装（CPU1v1・ガベージ・勝敗判定）
+フェーズ5：Tetris 99型対戦     → ⬜ 未着手
+フェーズ6：リプレイ・観戦・成績 → ⬜ 未着手
+フェーズ7：クラウド／アカウント → ⬜ 未着手
+
+
+[プロジェクト起動方法（現行）]
+① run_tetris.bat をダブルクリック
+  → Dockerコンテナ起動 + http://localhost:5502 でアクセス可能
+
+手動起動（Docker無しの場合）:
+> g++ -O3 -o server/engine.exe cpp/engine.cpp
+> go build -o server/run_server.exe server/main.go
+> server/run_server.exe
+  → http://localhost:5502 でアクセス可能（Live Server等別途必要）
+
+
+[注意事項]
+キー設定はlocalStorageに保存されているのでリセットする場合はlocalStorage.clear()する
+engine.exeはserver/フォルダに配置すること（main.goの参照先）
+ガベージは地形に密着または埋まる場合のみミノを押し上げる（本家仕様）
+スポーン地点はy=-1（ガイドライン準拠）。限界まで積んだ時のBlock Outが正しく発動する
+
+
+[難易度の意味付け（AI行動）]
+Lv1-4  ：ノイズ・ミスドロップで意図的に弱くしてある
+Lv5    ：ノイズなし・Hold無し・安定積みの基準レベル
+Lv6    ：Hold使用開始
+Lv7-8  ：2手読み・T-Spin/B2B狙い・Lv8以上は末尾SDをHDに圧縮
+Lv9-10 ：3手読み・完全最適化・人間超えの速度、未来風）
 
 ==========================================================================
 Tetris/
