@@ -1,7 +1,118 @@
-[
-  0.8,
-  0.5,
-  0.3,
-  1.0,
-  1.2
-]
+{
+  "version": "2.0",
+  "description": "テトリスAI レベル1-10設定ファイル",
+  
+  "levels": {
+    "1": {
+      "name": "練習用",
+      "description": "初心者でも勝てる練習用AI",
+      "depth": 1,
+      "holdEnabled": false,
+      "nextWatch": 0,
+      "noise": 350,
+      "misdropRate": 0.15,
+      "tickMs": 160
+    },
+    "2": {
+      "name": "初心者",
+      "description": "少し慣れた初心者向け",
+      "depth": 1,
+      "holdEnabled": false,
+      "nextWatch": 0,
+      "noise": 250,
+      "misdropRate": 0.10,
+      "tickMs": 130
+    },
+    "3": {
+      "name": "初級",
+      "description": "カジュアルプレイヤー向け",
+      "depth": 1,
+      "holdEnabled": false,
+      "nextWatch": 0,
+      "noise": 150,
+      "misdropRate": 0.06,
+      "tickMs": 110
+    },
+    "4": {
+      "name": "中級",
+      "description": "一般プレイヤー向け",
+      "depth": 1,
+      "holdEnabled": false,
+      "nextWatch": 0,
+      "noise": 80,
+      "misdropRate": 0.03,
+      "tickMs": 95
+    },
+    "5": {
+      "name": "標準",
+      "description": "やや上手い人向け（基準レベル）",
+      "depth": 1,
+      "holdEnabled": false,
+      "nextWatch": 1,
+      "noise": 0,
+      "misdropRate": 0,
+      "tickMs": 80
+    },
+    "6": {
+      "name": "上級",
+      "description": "中級者向け、Hold使用開始",
+      "depth": 1,
+      "holdEnabled": true,
+      "nextWatch": 1,
+      "noise": 0,
+      "misdropRate": 0,
+      "tickMs": 55
+    },
+    "7": {
+      "name": "エキスパート",
+      "description": "上級者向け、2手読み",
+      "depth": 2,
+      "holdEnabled": true,
+      "nextWatch": 2,
+      "noise": 0,
+      "misdropRate": 0,
+      "tickMs": 40
+    },
+    "8": {
+      "name": "マスター",
+      "description": "ハードコアプレイヤー向け",
+      "depth": 2,
+      "holdEnabled": true,
+      "nextWatch": 3,
+      "noise": 0,
+      "misdropRate": 0,
+      "tickMs": 28
+    },
+    "9": {
+      "name": "伝説",
+      "description": "プロレベル、人間にはほぼ勝てない",
+      "depth": 3,
+      "holdEnabled": true,
+      "nextWatch": 4,
+      "noise": 0,
+      "misdropRate": 0,
+      "tickMs": 18
+    },
+    "10": {
+      "name": "神",
+      "description": "人間には到底勝てないレベル",
+      "depth": 3,
+      "holdEnabled": true,
+      "nextWatch": 5,
+      "noise": 0,
+      "misdropRate": 0,
+      "tickMs": 10
+    }
+  },
+
+  "weights": {
+    "aggregate_height": -0.510066,
+    "complete_lines": 0.760666,
+    "holes": -0.35663,
+    "bumpiness": -0.184483,
+    "tspin_bonus": 1.25,
+    "b2b_bonus": 0.40,
+    "ren_bonus": 0.05,
+    "pc_bonus": 3.00
+  }
+}

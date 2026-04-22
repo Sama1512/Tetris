@@ -1,0 +1,23 @@
+/* CSS変数で配色を切り替える。effectManager も参照する */
+:root{
+    --page-bg:#0b0f14; --page-fg:#e6f2ff;
+    --badge-b2b-a:#00c2ff; --badge-b2b-b:#1e88e5;
+    --badge-ren-a:#ffd54f; --badge-ren-b:#ff9800;
+    --badge-ac-a:#fff176;  --badge-ac-b:#ffb300;
+}
+
+body[data-theme="neo"]{
+    --page-bg:#0b0f14; --page-fg:#e6f2ff;
+    --badge-b2b-a:#00c2ff; --badge-b2b-b:#1e88e5;
+    --badge-ren-a:#ffd54f; --badge-ren-b:#ff9800;
+    --badge-ac-a:#fff176;  --badge-ac-b:#ffb300;
+}
+
+body[data-theme="dark"]{
+    --page-bg:#050608; --page-fg:#d7dbde;
+    --badge-b2b-a:#5bd3ff; --badge-b2b-b:#4e7bd9;
+    --badge-ren-a:#ffe082; --badge-ren-b:#ffa726;
+    --badge-ac-a:#fff59d;  --badge-ac-b:#ffca28;
+}
+
+body{ background:var(--page-bg); color:var(--page-fg); }

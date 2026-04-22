@@ -1,10 +1,12 @@
 import { initDraw, drawField, drawMino, drawNext, drawHold, setDrawState, drawGhost } from "../core/draw.js";
 import { initField, checkCollision, placeMino, clearLines, isPerfectClear } from "../core/field.js";
-import { getNextBag, rotateMino, cloneMino } from "../core/mino.js";
+import { getNextBag, rotateMino, cloneMino, getBlocks } from "../core/mino.js";
 import { initInput } from "../core/input.js";
 import { ScoreManager } from "../core/score.js";
 import { classifyTSpinStrict } from "../core/tspin.js";
 import { Effects } from "../ui/effectManager.js";
+import { loadThemeFromSettings } from "../ui/theme.js";
+import { Sound } from "../ui/sound.js";
 
 export class SingleGameBase {
   constructor(canvasId, nextCount = 5, onStateUpdate = null) {
@@ -20,30 +22,38 @@ export class SingleGameBase {
     this.scoreManager = new ScoreManager();
     this.isGameOver = false;
 
-    // 設定（_loadSettingsで上書き）
+    // 設定
     this.enableHold = true;
     this.enableHardDrop = true;
     this.reverseRotation = false;
     this.showGhost = true;
 
-    // 直前アクション（'rotate' | 'move' | 'none'）
+    // 直前アクション
     this.lastAction = "none";
+    this.lastKickIndex = -1;
 
-    // --- ロック遅延（ms）と状態 ---
+    // ロック遅延
     this.lockDelayMs = 500;
-    this.isGrounded = false;     // 接地中か
-    this.lockDeadline = 0;       // 固定予定時刻
-    this.lockTimerId = null;     // 固定タイマーID
+    this.isGrounded = false;
+    this.lockDeadline = 0;
+    this.lockTimerId = null;
 
-    // 有限リセット（無限延長防止）
-    this.maxLockResets = 15;     // このピースで延長できる最大回数
-    this.lockResets = 0;         // 今何回延長したか
-    this.groundContactY = null;  // 接地した時点のY（step判定用）
+    // 有限リセット
+    this.maxLockResets = 15;
+    this.lockResets = 0;
+    this.groundContactY = null;
 
-    // ★Resetポリシー（"move" | "step"）
-    //   move … 接地中のプレイヤー操作で延長（本家寄り／DT砲OK）
-    //   step … 1段下がった時だけ延長（より厳格）
+    // リセットポリシー
     this.lockResetPolicy = "move";
+
+    // 追加トグル
+    this.lenientTSpin = false;
+    this.effectsEnabled = true;
+    this.badgeScale = 1.35;
+    this.comboLabel = "REN";
+
+    // サウンド
+    this.sfx = null;
 
     this.init();
   }
@@ -62,6 +72,7 @@ export class SingleGameBase {
     };
     const readBool = k => { const v = localStorage.getItem(k); return v==null?undefined:toBool(v,undefined); };
     const readInt  = k => { const v = localStorage.getItem(k); if (v==null) return undefined; const n=Number(v); return Number.isFinite(n)?(n|0):undefined; };
+    const readNum  = k => { const v = localStorage.getItem(k); if (v==null) return undefined; const n=Number(v); return Number.isFinite(n)?n:undefined; };
     const readStr  = k => { const v = localStorage.getItem(k); return v==null?undefined:String(v); };
 
     const pickSettings = () => {
@@ -76,28 +87,35 @@ export class SingleGameBase {
 
     const base = pickSettings();
     const flat = {
-      "show-ghost":       readBool("show-ghost"),
-      "enable-hold":      readBool("enable-hold"),
-      "enable-harddrop":  readBool("enable-harddrop"),
-      "reverse-rotation": readBool("reverse-rotation"),
-      "show-time":        readBool("show-time"),
-      "next-count":       readInt("next-count"),
-      "das":              readInt("das"),
-      "arr":              readInt("arr"),
-      "lock-delay":       readInt("lock-delay"),
-      "lock-resets":      readInt("lock-resets"),
-      "lock-reset-policy":readStr("lock-reset-policy"),
+      "show-ghost":         readBool("show-ghost"),
+      "enable-hold":        readBool("enable-hold"),
+      "enable-harddrop":    readBool("enable-harddrop"),
+      "reverse-rotation":   readBool("reverse-rotation"),
+      "show-time":          readBool("show-time"),
+      "next-count":         readInt ("next-count"),
+      "das":                readInt ("das"),
+      "arr":                readInt ("arr"),
+      "lock-delay":         readInt ("lock-delay"),
+      "lock-resets":        readInt ("lock-resets"),
+      "lock-reset-policy":  readStr ("lock-reset-policy"),
+      // 追加トグル
+      "lenient-tspin":      readBool("lenient-tspin"),
+      "effects-enabled":    readBool("effects-enabled"),
+      "effects-badge-scale":readNum ("effects-badge-scale"),
+      "combo-label":        readStr ("combo-label"),
     };
     Object.keys(flat).forEach(k => flat[k] === undefined && delete flat[k]);
     const s = { ...base, ...flat };
 
     const gv = (h,c,d)=> (s[h] ?? s[c] ?? d);
-    const toBool2 = (h,c,d)=> toBool(gv(h,c,d), d);
+    const toB = (h,c,d)=> toBool(gv(h,c,d), d);
+    const toN = (h,c,d)=> { const v=gv(h,c,d); return Number.isFinite(v)?v:d; };
+    const toS = (h,c,d)=> { const v=gv(h,c,d); return (v!=null)?String(v):d; };
 
-    this.showGhost       = toBool2("show-ghost","showGhost", this.showGhost);
-    this.enableHold      = toBool2("enable-hold","enableHold", this.enableHold);
-    this.enableHardDrop  = toBool2("enable-harddrop","enableHardDrop", this.enableHardDrop);
-    this.reverseRotation = toBool2("reverse-rotation","reverseRotation", this.reverseRotation);
+    this.showGhost       = toB("show-ghost","showGhost", this.showGhost);
+    this.enableHold      = toB("enable-hold","enableHold", this.enableHold);
+    this.enableHardDrop  = toB("enable-harddrop","enableHardDrop", this.enableHardDrop);
+    this.reverseRotation = toB("reverse-rotation","reverseRotation", this.reverseRotation);
 
     const nc = gv("next-count","nextCount", this.nextCount);
     if (Number.isFinite(nc) && nc > 0) this.nextCount = nc|0;
@@ -111,6 +129,12 @@ export class SingleGameBase {
     const pol = (gv("lock-reset-policy","lockResetPolicy", this.lockResetPolicy) || "").toString().toLowerCase();
     if (pol === "move" || pol === "step") this.lockResetPolicy = pol;
 
+    // ★追加トグル系
+    this.lenientTSpin   = toB("lenient-tspin",     "lenientTSpin",     this.lenientTSpin);
+    this.effectsEnabled = toB("effects-enabled",   "effectsEnabled",   this.effectsEnabled);
+    this.badgeScale     = toN("effects-badge-scale","effectsBadgeScale",this.badgeScale);
+    this.comboLabel     = toS("combo-label",       "comboLabel",       this.comboLabel);
+
     // 正規化保存（将来は settings 一つで読めるように）
     try {
       const normalized = {
@@ -122,6 +146,10 @@ export class SingleGameBase {
         "lock-delay": this.lockDelayMs,
         "lock-resets": this.maxLockResets,
         "lock-reset-policy": this.lockResetPolicy,
+        "lenient-tspin": this.lenientTSpin,
+        "effects-enabled": this.effectsEnabled,
+        "effects-badge-scale": this.badgeScale,
+        "combo-label": this.comboLabel,
         ...(Number.isFinite(s.das) ? { das: s.das|0 } : {}),
         ...(Number.isFinite(s.arr) ? { arr: s.arr|0 } : {}),
         ...(typeof s["show-time"] === "boolean" ? { "show-time": s["show-time"] } : {}),
@@ -139,16 +167,23 @@ export class SingleGameBase {
       showGhost:this.showGhost, enableHold:this.enableHold,
       enableHardDrop:this.enableHardDrop, reverseRotation:this.reverseRotation,
       nextCount:this.nextCount, lockDelayMs:this.lockDelayMs,
-      maxLockResets:this.maxLockResets, lockResetPolicy:this.lockResetPolicy
+      maxLockResets:this.maxLockResets, lockResetPolicy:this.lockResetPolicy,
+      lenientTSpin:this.lenientTSpin, effectsEnabled:this.effectsEnabled,
+      badgeScale:this.badgeScale, comboLabel:this.comboLabel
     });
   }
 
   init() {
     initDraw(this.canvas);
-    window.__game = this; // デバッグ用
+    loadThemeFromSettings();          // ★ 起動時に必ずテーマ適用
+    window.__game = this;
     this._loadSettings();
     initInput(this.handleKey.bind(this));
-    this.effects = new Effects(this.canvas);
+    this.effects = this.effectsEnabled ? new Effects(this.canvas, { comboLabel: this.comboLabel, badgeScale: this.badgeScale }) : null;
+
+    // ★ サウンド：初回操作でAudioContext解錠／設定反映
+    this.sfx = new Sound();
+    this.sfx.attachUnlock();
   }
 
   reset() {
@@ -171,16 +206,21 @@ export class SingleGameBase {
   spawnMino() {
     this.currentMino = this.nextQueue.shift();
     if (this.nextQueue.length <= 7) this.nextQueue.push(...getNextBag());
-    this.currentMino.x = 4; this.currentMino.y = 0;
+    this.currentMino.x = 3; 
+    this.currentMino.y = -1; // ★ 画面外だが下端がrow 0に触れるため、限界まで積まれた時の即死判定(Block Out)が正しく発動する
     this.canHold = true;
     this.lastAction = "none";
-    // 新品ピース：ロック状態を完全リセット
+    this.lastKickIndex = -1;
     this.lockResets = 0;
     this.groundContactY = null;
     this._leaveGrounded();
 
-    if (checkCollision(this.field, this.currentMino)) this.onGameOver?.();
-    else this.render();
+    if (checkCollision(this.field, this.currentMino)) {
+      this.isGameOver = true;
+      if (this.onGameOver) this.onGameOver();
+    } else {
+      this.render();
+    }
     this.updateState();
   }
 
@@ -190,10 +230,13 @@ export class SingleGameBase {
     this.holdMino = cloneMino(this.currentMino);
     if (temp) this.currentMino = cloneMino(temp);
     else { this.currentMino = this.nextQueue.shift(); this.nextQueue.push(...getNextBag()); }
-    this.currentMino.x = 4; this.currentMino.y = 0;
+    this.currentMino.x = 3; 
+    this.currentMino.y = -1; 
     this.canHold = false;
-    this.lastAction = "move"; // hold は回転扱いではない
-    this._leaveGrounded();    // 持ち上がった扱い
+    this.lastAction = "move";
+    this.lastKickIndex = -1;
+    this._leaveGrounded();
+    this.sfx?.play("hold");          // ★
     this.render();
   }
 
@@ -206,54 +249,58 @@ export class SingleGameBase {
     if (rr && rr.kickIndex !== -1) {
       this.currentMino = rr.mino;
       this.lastAction = "rotate";
+      this.lastKickIndex = rr.kickIndex;
       if (this.onGround()) this._resetGroundedTimer(); else this._leaveGrounded();
+      this.sfx?.play("rotate");       // ★
       this.render();
     }
   }
 
   hardDrop() {
     if (!this.enableHardDrop) return;
-    while (!checkCollision(this.field, { ...this.currentMino, y: this.currentMino.y + 1 })) this.currentMino.y++;
+    let cellsDropped = 0;
+    while (!checkCollision(this.field, { ...this.currentMino, y: this.currentMino.y + 1 })) {
+      this.currentMino.y++;
+      cellsDropped++;
+    }
+    if (cellsDropped > 0) Object.getPrototypeOf(this.scoreManager).addDropScore?.call(this.scoreManager, cellsDropped * 2);
     this.lastAction = "move";
+    this.lastKickIndex = -1;
+    this.sfx?.play("hard");           // ★
     this.lockAndScore();
   }
 
-  /**
-   * ミノ移動
-   * @param {number} dx
-   * @param {number} dy
-   * @param {"user"|"gravity"} source … プレイヤー操作 or 重力
-   */
   moveMino(dx, dy, source = "user") {
     const next = { ...this.currentMino, x: this.currentMino.x + dx, y: this.currentMino.y + dy };
 
     if (!checkCollision(this.field, next)) {
-      // 宙に移動できた
       this.currentMino = next;
-      // strict: 縦or横で 'move' に落とす（lenientにするなら dx だけにする）
-      if (dx !== 0 || dy === 1) this.lastAction = "move";
-
+      if (source === "user" && dy > 0 && dx === 0) {
+        Object.getPrototypeOf(this.scoreManager).addDropScore?.call(this.scoreManager, dy);
+      }
+      const resetByMove = this.lenientTSpin ? (dx !== 0) : (dx !== 0 || dy === 1);
+      if (resetByMove) {
+        this.lastAction = "move";
+        this.lastKickIndex = -1;
+      }
+      if (dx !== 0) this.sfx?.play("move", { volume: 0.4 }); // ★ 横移動だけSE
       if (this.onGround()) {
-        // まだ接地（床ぺったり）→ プレイヤー操作なら延長、重力は延長しない
         if (source === "user") this._resetGroundedTimer();
       } else {
         this._leaveGrounded();
       }
       this.render();
     } else if (dy === 1) {
-      // 下へ進めない＝接地（ロック猶予管理）
       if (source === "gravity") {
-        // 重力での接地：最初だけタイマー開始、以降は延長しない（自然ロックへ）
         if (!this.isGrounded) this._enterGrounded();
       } else {
-        // プレイヤー操作（ソフトドロップ等）での接地：延長を許可（ポリシー＆上限に従う）
         if (!this.isGrounded) this._enterGrounded(); else this._resetGroundedTimer();
       }
     }
     this.updateState();
   }
 
-  // === ロック遅延管理（policy: move/step, 上限あり）===
+  // === ロック遅延管理（省略：あなたの最新版そのまま） ===
   onGround() { return checkCollision(this.field, { ...this.currentMino, y: this.currentMino.y + 1 }); }
   _clearLockTimer() { if (this.lockTimerId) { clearTimeout(this.lockTimerId); this.lockTimerId = null; } }
   _armLockTimer() {
@@ -273,15 +320,10 @@ export class SingleGameBase {
   }
   _resetGroundedTimer() {
     if (!this.isGrounded) return;
-    // ★上限チェック
     if (this.lockResets >= this.maxLockResets) return;
-
-    // ★ポリシー判定：step の場合は“1段下がった”ときのみ延長
     if (this.lockResetPolicy === "step") {
       if (this.currentMino.y <= (this.groundContactY ?? this.currentMino.y)) return;
     }
-    // move の場合は step 条件不要（接地中の操作なら延長OK）
-
     this.lockResets++;
     this.groundContactY = Math.max(this.groundContactY ?? this.currentMino.y, this.currentMino.y);
     this.lockDeadline = performance.now() + this.lockDelayMs;
@@ -293,8 +335,16 @@ export class SingleGameBase {
     this.groundContactY = null;
   }
 
-  // === スコア／判定／演出 ===
+  // === スコア／判定／演出／SE ===
   lockAndScore() {
+    // === Lock Out 判定（完全に画面外で固定された場合＝ゲームオーバー） ===
+    const isLockOut = getBlocks(this.currentMino).every(([x, y]) => y < 0);
+    if (isLockOut) {
+      this.isGameOver = true;
+      if (this.onGameOver) this.onGameOver();
+      return;
+    }
+
     placeMino(this.field, this.currentMino);
 
     const fieldBeforeClear = this.field.map(r => r.slice());
@@ -303,19 +353,48 @@ export class SingleGameBase {
     const type = classifyTSpinStrict(
       this.currentMino,
       fieldBeforeClear,
-      { rotated: this.lastAction === "rotate" },
+      { rotated: this.lastAction === "rotate", kickIndex: this.lastKickIndex },
       cleared
     );
     this.lastAction = "none";
+    this.lastKickIndex = -1;
     this._leaveGrounded();
 
     const pc  = (cleared > 0) && isPerfectClear(this.field);
     const res = this.scoreManager.applyClear({ lines: cleared, type, perfectClear: pc });
 
+    // ★ SE
+    if (pc) this.sfx?.play("pc");
+    else if (cleared === 4) this.sfx?.play("tetris");
+    else if (type === "tspin" || type === "tspin-mini") this.sfx?.play("tspin");
+    else if (cleared > 0) this.sfx?.play("clear1", { rate: 1 + (cleared-1)*0.1 });
+
     this.effects?.onClear({ lines: cleared, type, b2b: res.b2b, combo: res.combo, perfectClear: pc });
     this.onClear?.(cleared, { type, perfectClear: pc, ...res });
 
     this.spawnMino();
+  }
+
+  // === ガベージによる座標の押し上げ ===
+  applyGarbageShift(lines) {
+    if (!this.currentMino) return;
+
+    // ミノのY座標は原則そのまま（視覚的に同じ高さを維持）。
+    // ただし、ガベージによって地形がせり上がり、ミノにかぶる（めり込む）場合のみ
+    // 重ならない高さまで上に逃がす。
+    let pushedUp = 0;
+    while (checkCollision(this.field, this.currentMino) && pushedUp < 22) {
+      this.currentMino.y--;
+      pushedUp++;
+    }
+
+    if (this.groundContactY !== null) {
+      this.groundContactY -= lines; // 記録している接地位置は地形と同じく全体が上がるのでlines分下げる
+    }
+
+    if (this.ai && typeof this.ai.onGarbageShift === "function") {
+      this.ai.onGarbageShift(pushedUp);
+    }
   }
 
   render() {

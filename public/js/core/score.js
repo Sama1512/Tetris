@@ -21,6 +21,12 @@ export class ScoreManager {
     this.lastMessage = null;
   }
 
+  addDropScore(pts) {
+    if (pts > 0) {
+      this.score += pts;
+    }
+  }
+
   /**
    * フェーズ2用の本命API：行消去と種別に基づきスコア・B2B・REN更新
    * @param {Object} param0
@@ -33,6 +39,13 @@ export class ScoreManager {
     // 消去なし → コンボ切れ、B2Bは維持（ガイドライン準拠）
     if (!lines || lines <= 0) {
       this.combo = -1;
+      const base = this._basePoints(0, type);
+      if (base > 0) {
+        this.score += base;
+        const desc = this._describe(0, type, false, 0, false);
+        this.lastMessage = desc;
+        return { added: base, b2b: this.b2b, combo: this.combo, desc };
+      }
       this.lastMessage = "none";
       return { added: 0, b2b: this.b2b, combo: this.combo, desc: "none" };
     }
@@ -102,10 +115,12 @@ export class ScoreManager {
   _basePoints(lines, type) {
     // ガイドライン目安
     if (type === "tspin-mini") {
+      if (lines === 0) return 100;
       if (lines === 1) return 200;
       if (lines === 2) return 400; // mini double は便宜上
     }
     if (type === "tspin") {
+      if (lines === 0) return 400;
       if (lines === 1) return 800;
       if (lines === 2) return 1200;
       if (lines === 3) return 1600;

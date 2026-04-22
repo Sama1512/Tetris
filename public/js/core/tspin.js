@@ -41,7 +41,14 @@ export function classifyTSpinStrict(mino, fieldBeforeClear, lastSpin, lines) {
     if (!isTPiece(mino) || !lastSpin?.rotated) return "normal";
     const { cornersFilled, frontFilled } = tSpinCornerInfo(mino, fieldBeforeClear);
     if (cornersFilled < 3) return "normal";
-    if (lines === 0) return "tspin-mini";
-    if (lines === 1) return (frontFilled === 2) ? "tspin" : "tspin-mini";
-    return "tspin";
+    
+    let isMini = frontFilled < 2;
+    // Kick 5 (index 4) による昇格 (T-Spin Mini を 通常の T-Spin 扱いにする)
+    if (lastSpin?.kickIndex === 4) {
+        isMini = false;
+    }
+
+    if (lines === 0) return isMini ? "tspin-mini" : "tspin";
+    if (lines === 1) return isMini ? "tspin-mini" : "tspin";
+    return "tspin"; // doubleやtripleは無条件でフルT-Spin
 }

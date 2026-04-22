@@ -1,12 +1,21 @@
 {
   "show-ghost": true,
-  "enable-hold": true,
-  "enable-harddrop": true,
-  "reverse-rotation": false,
+  "show-time": true,
   "next-count": 5,
+
+  "enable-harddrop": true,
+  "enable-hold": true,
+  "reverse-rotation": false,
   "das": 100,
   "arr": 33,
   "lock-delay": 500,
   "lock-resets": 15,
-  "lock-reset-policy": "move"
+  "lock-reset-policy": "move",
+
+  "theme": "neo",
+  "mute": false,
+  "sfx-volume": 0.6,
+  "effects-enabled": true,
+  "effects-badge-scale": 1.35,
+  "combo-label": "REN"
 }

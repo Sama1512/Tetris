@@ -1,9 +1,5 @@
-[起動方法]
-(事前準備) 拡張機能の「Live Server」が入っていない場合は要インストール
-①public/html/index.htmlを右クリック→一番上に出てくる「Open with Live Server」をクリック
-↓
-②localhost:5501/public/html/index.htmlをブラウザに入力
-
+[起動方法(Docker使用の場合)]
+「run_tetris.bat」をダブルクリック
 
 
 [デバック用]

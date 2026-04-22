@@ -11,20 +11,30 @@ export let currentHold = null;
 export let nextQueue = [];
 export let nextCount = 5;
 
+/**
+ * 外部（ゲームロジック）から現在の描画状態を受け取ってキャッシュ。
+ * render() 内ではこの状態を参照する。
+ */
 export function setDrawState({ field, mino, hold, queue, count }) {
   currentField = field;
   currentMino = mino;
   currentHold = hold;
   nextQueue = queue || [];
-  nextCount = count || 5;
+  nextCount = Number.isFinite(count) ? count : 5;
 }
 
+/**
+ * キャンバスを初期化し、画素サイズ(BLOCK_SIZE)を算出
+ */
 export function initDraw(canvasElement) {
   canvas = canvasElement;
   context = canvas.getContext("2d");
   resizeCanvasAll();
 }
 
+/**
+ * 画面サイズに応じてキャンバスの実ピクセルを調整
+ */
 export function resizeCanvasAll() {
   const { width, height } = getFieldSize();
   const maxWidth = window.innerWidth * 0.4;
@@ -36,130 +46,97 @@ export function resizeCanvasAll() {
   canvas.width = width * BLOCK_SIZE;
   canvas.height = height * BLOCK_SIZE;
 
-  drawFieldBackground();
-
-  // 🧠 リサイズ後の再描画
-  if (currentField) drawField(currentField);
-  if (currentMino) drawMino(currentMino);
-  if (currentHold) drawHold(currentHold);
-  if (nextQueue.length > 0) drawNext(nextQueue, nextCount);
+  // 再描画（状態があれば）
+  if (currentField) {
+    drawField(currentField);
+    if (currentMino) drawMino(currentMino);
+  }
 }
 
+/** 背景の薄いグリッド */
 function drawFieldBackground() {
-  context.fillStyle = "#000";
+  const { width, height } = getFieldSize();
+  context.fillStyle = "#101418";
   context.fillRect(0, 0, canvas.width, canvas.height);
+
+  context.strokeStyle = "rgba(255,255,255,0.06)";
+  context.lineWidth = 1;
+  for (let x = 0; x <= width; x++) {
+    const px = x * BLOCK_SIZE + 0.5;
+    context.beginPath();
+    context.moveTo(px, 0);
+    context.lineTo(px, canvas.height);
+    context.stroke();
+  }
+  for (let y = 0; y <= height; y++) {
+    const py = y * BLOCK_SIZE + 0.5;
+    context.beginPath();
+    context.moveTo(0, py);
+    context.lineTo(canvas.width, py);
+    context.stroke();
+  }
 }
 
+/** 単ブロック描画 */
+function drawBlock(x, y, color) {
+  const px = x * BLOCK_SIZE;
+  const py = y * BLOCK_SIZE;
+  context.fillStyle = color || "#66c";
+  context.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+  context.strokeStyle = "rgba(0,0,0,0.4)";
+  context.strokeRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+}
+
+/** 盤面の固定ブロック群 */
 export function drawField(field) {
   drawFieldBackground();
   for (let y = 0; y < field.length; y++) {
     for (let x = 0; x < field[y].length; x++) {
       if (field[y][x]) {
-        drawBlock(x, y, field[y][x]);
+        drawBlock(x, y, field[y][x].color || field[y][x]);
       }
     }
   }
 }
 
+/** 操作中ミノ */
 export function drawMino(mino) {
+  if (!mino) return;
   getBlocks(mino).forEach(([x, y]) => {
+    if (y < 0) return; // 出現時に上部がはみ出すことがある
     drawBlock(x, y, mino.color);
   });
 }
 
-function drawBlock(x, y, color) {
-  context.fillStyle = color;
-  context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-  context.strokeStyle = "#333";
-  context.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-}
-
-export function drawHold(mino) {
-  const holdArea = document.getElementById("hold-canvas");
-  if (!holdArea || !mino) return;
-
-  const ctx = holdArea.getContext("2d");
-  const canvasSize = 4 * BLOCK_SIZE;
-
-  holdArea.width = canvasSize;
-  holdArea.height = canvasSize;
-  ctx.clearRect(0, 0, canvasSize, canvasSize);
-
-  const blocks = getBlocks(mino);
-  const xs = blocks.map(([x, _]) => x);
-  const ys = blocks.map(([_, y]) => y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-
-  const minoWidth = maxX - minX + 1;
-  const minoHeight = maxY - minY + 1;
-
-  const offsetX = Math.floor((4 - minoWidth) / 2) - minX;
-  const offsetY = Math.floor((4 - minoHeight) / 2) - minY;
-
-  ctx.fillStyle = mino.color;
-  blocks.forEach(([x, y]) => {
-    const drawX = (x + offsetX) * BLOCK_SIZE;
-    const drawY = (y + offsetY) * BLOCK_SIZE;
-    ctx.fillRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
-    ctx.strokeStyle = "#333";
-    ctx.strokeRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
-  });
-}
-
-
-// 透過ゴースト描画
+/** ゴースト（落下予測） */
 export function drawGhost(field, mino) {
-  if (!field || !mino) return;
-  // ゴースト位置を計算
-  const ghost = {
-    type: mino.type,
-    rotation: mino.rotation,
-    x: mino.x,
-    y: mino.y,
-    blocks: mino.blocks,
-    color: mino.color,
+  if (!mino) return;
+  // 落とせる所まで下げる
+  let ghostY = mino.y;
+  const test = (obj) => {
+    return getBlocks(obj).some(([x, y]) => {
+      const out = (
+        x < 0 ||
+        y >= field.length ||
+        x >= field[0].length ||
+        (y >= 0 && field[y][x])
+      );
+      return out;
+    });
   };
+  while (!test({ ...mino, y: ghostY + 1 })) ghostY++;
 
-  // フィールドサイズ（固定10x20想定だが保険）
-  const h = field.length;
-  const w = field[0]?.length ?? 10;
-
-  // 衝突チェックの簡易版
-  const collides = (m) => {
-    const blocks = getBlocks(m);
-    for (const [bx, by] of blocks) {
-      if (bx < 0 || bx >= w || by >= h) return true;
-      if (by >= 0 && field[by][bx]) return true;
-    }
-    return false;
-  };
-
-  // 下に落とし続け、衝突直前まで移動
-  while (true) {
-    const next = { ...ghost, y: ghost.y + 1 };
-    if (collides(next)) break;
-    ghost.y += 1;
-  }
-
-  // 半透明で描画
-  const ctx = context;
-  ctx.save();
-  ctx.globalAlpha = 0.3;
-  const blocks = getBlocks(ghost);
-  blocks.forEach(([x, y]) => {
-    if (y < 0) return; // 画面外は無視
-    const drawX = x * BLOCK_SIZE;
-    const drawY = y * BLOCK_SIZE;
-    ctx.fillStyle = ghost.color || "gray";
-    ctx.fillRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
-    ctx.strokeStyle = "#333";
-    ctx.strokeRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
+  const ghost = { ...mino, y: ghostY };
+  context.save();
+  context.globalAlpha = 0.25;
+  getBlocks(ghost).forEach(([x, y]) => {
+    if (y < 0) return;
+    drawBlock(x, y, mino.color || "#fff");
   });
-  ctx.restore();
+  context.restore();
 }
+
+/** NEXT（標準：#next-canvas を使う） */
 export function drawNext(queue, count) {
   const canvas = document.getElementById("next-canvas");
   const ctx = canvas.getContext("2d");
@@ -185,19 +162,138 @@ export function drawNext(queue, count) {
     const minoWidth = maxX - minX + 1;
     const minoHeight = maxY - minY + 1;
 
-    const offsetX = Math.floor((5 - minoWidth) / 2) - minX;
+    const offsetX = Math.floor((4 - minoWidth) / 2) - minX;
     const offsetY = Math.floor((4 - minoHeight) / 2) - minY;
-    const startY = i * (previewHeight + spacing);
+
+    const ox = BLOCK_SIZE * 0.5;
+    const oy = i * (previewHeight + spacing) + BLOCK_SIZE * 0.5;
 
     ctx.fillStyle = mino.color;
-    blocks.forEach(([dx, dy]) => {
-      const x = (dx + offsetX) * BLOCK_SIZE;
-      const y = startY + (dy + offsetY) * BLOCK_SIZE;
-      ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+    blocks.forEach(([x, y]) => {
+      const px = ox + (x + offsetX) * BLOCK_SIZE;
+      const py = oy + (y + offsetY) * BLOCK_SIZE;
+      ctx.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
       ctx.strokeStyle = "#000";
-      ctx.strokeRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+      ctx.strokeRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
     });
   }
+}
+
+/** HOLD（標準：#hold-canvas を使う） */
+export function drawHold(hold) {
+  const canvas = document.getElementById("hold-canvas");
+  const ctx = canvas.getContext("2d");
+  const previewHeight = BLOCK_SIZE * 4;
+  canvas.width = BLOCK_SIZE * 5;
+  canvas.height = previewHeight + BLOCK_SIZE;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!hold) return;
+  const blocks = hold.blocks;
+  const xs = blocks.map(([x, _]) => x);
+  const ys = blocks.map(([_, y]) => y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+
+  const minoWidth = maxX - minX + 1;
+  const minoHeight = maxY - minY + 1;
+
+  const offsetX = Math.floor((4 - minoWidth) / 2) - minX;
+  const offsetY = Math.floor((4 - minoHeight) / 2) - minY;
+
+  ctx.fillStyle = hold.color;
+  blocks.forEach(([x, y]) => {
+    const px = BLOCK_SIZE * (x + offsetX + 1);
+    const py = BLOCK_SIZE * (y + offsetY + 1);
+    ctx.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+    ctx.strokeStyle = "#000";
+    ctx.strokeRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+  });
+}
+
+/* =========================
+   ここから対戦用の追加API
+   ========================= */
+
+/**
+ * 対戦用：NEXT を指定キャンバスへ描画
+ * 例) drawNextTo(queue, count, "player-next-canvas")
+ */
+export function drawNextTo(queue, count, canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const spacing = BLOCK_SIZE / 2;
+  const previewHeight = BLOCK_SIZE * 4;
+
+  canvas.width = BLOCK_SIZE * 5;
+  canvas.height = count * (previewHeight + spacing);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < count; i++) {
+    const mino = queue[i];
+    if (!mino) continue;
+    const blocks = mino.blocks;
+    const xs = blocks.map(([x, _]) => x);
+    const ys = blocks.map(([_, y]) => y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const minoWidth = maxX - minX + 1;
+    const minoHeight = maxY - minY + 1;
+    const offsetX = Math.floor((4 - minoWidth) / 2) - minX;
+    const offsetY = Math.floor((4 - minoHeight) / 2) - minY;
+    const ox = BLOCK_SIZE * 0.5;
+    const oy = i * (previewHeight + spacing) + BLOCK_SIZE * 0.5;
+
+    ctx.fillStyle = mino.color;
+    blocks.forEach(([x, y]) => {
+      const px = ox + (x + offsetX) * BLOCK_SIZE;
+      const py = oy + (y + offsetY) * BLOCK_SIZE;
+      ctx.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+      ctx.strokeStyle = "#000";
+      ctx.strokeRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+    });
+  }
+}
+
+/**
+ * 対戦用：HOLD を指定キャンバスへ描画
+ * 例) drawHoldTo(hold, "cpu-hold-canvas")
+ */
+export function drawHoldTo(hold, canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const previewHeight = BLOCK_SIZE * 4;
+  canvas.width = BLOCK_SIZE * 5;
+  canvas.height = previewHeight + BLOCK_SIZE;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!hold) return;
+  const blocks = hold.blocks;
+  const xs = blocks.map(([x, _]) => x);
+  const ys = blocks.map(([_, y]) => y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const minoWidth = maxX - minX + 1;
+  const minoHeight = maxY - minY + 1;
+  const offsetX = Math.floor((4 - minoWidth) / 2) - minX;
+  const offsetY = Math.floor((4 - minoHeight) / 2) - minY;
+
+  ctx.fillStyle = hold.color;
+  blocks.forEach(([x, y]) => {
+    const px = BLOCK_SIZE * (x + offsetX + 1);
+    const py = BLOCK_SIZE * (y + offsetY + 1);
+    ctx.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+    ctx.strokeStyle = "#000";
+    ctx.strokeRect(px, py, BLOCK_SIZE, BLOCK_SIZE);
+  });
 }
 
 // 📏 リサイズを最適化（debounce）
